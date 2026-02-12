@@ -239,7 +239,17 @@ def analyze_stock_simple(ticker):
         # Ensure we're working with Series, not DataFrame
         # If multi-level columns exist, flatten them
         if isinstance(df.columns, pd.MultiIndex):
-            df.columns = df.columns.get_level_values(0)
+            # For single ticker, columns are like ('Close', 'BBCA.JK')
+            # We want just 'Close', 'High', 'Low', etc.
+            df.columns = df.columns.droplevel(1) if df.columns.nlevels > 1 else df.columns.get_level_values(0)
+        
+        # Verify required columns exist
+        required_cols = ['Close', 'High', 'Low', 'Open', 'Volume']
+        missing_cols = [col for col in required_cols if col not in df.columns]
+        if missing_cols:
+            return {
+                "error": f"Data tidak lengkap untuk '{ticker}'. Kolom yang hilang: {', '.join(missing_cols)}"
+            }
         
         # Get Close price as Series
         close_series = df['Close'].squeeze() if hasattr(df['Close'], 'squeeze') else df['Close']
