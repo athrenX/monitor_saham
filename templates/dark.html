@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Stock Analysis - Dark Mode</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <style>
+        :root {
+            --dark-bg: #0a0a0a;
+            --dark-card: #1a1a1a;
+            --dark-card-hover: #252525;
+            --dark-border: #333333;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --accent-primary: #ffffff;
+            --accent-secondary: #808080;
+            --success: #00ff88;
+            --danger: #ff4444;
+            --warning: #ffbb33;
+            --info: #66d9ef;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            padding: 0;
+        }
+        
+        /* Animated Background */
+        .bg-animated {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.03) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.02) 0%, transparent 50%);
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .container-main {
+            position: relative;
+            z-index: 1;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header */
+        .header-section {
+            background: linear-gradient(135deg, var(--dark-card) 0%, #252525 100%);
+            border: 1px solid var(--dark-border);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header-section::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 200%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+            animation: shine 3s infinite;
+        }
+        
+        @keyframes shine {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        .header-title {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #ffffff 0%, #808080 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .header-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+            font-weight: 300;
+        }
+        
+        /* Search Box */
+        .search-box {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+        }
+        
+        .search-box:hover {
+            border-color: var(--accent-secondary);
+        }
+        
+        .ticker-input {
+            background: var(--dark-bg);
+            border: 2px solid var(--dark-border);
+            border-radius: 15px;
+            padding: 18px 25px;
+            font-size: 1.2rem;
+            color: var(--text-primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+        }
+        
+        .ticker-input:focus {
+            background: var(--dark-card);
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.1);
+            outline: none;
+            color: var(--text-primary);
+        }
+        
+        .ticker-input::placeholder {
+            color: var(--text-secondary);
+            text-transform: none;
+        }
+        
+        .btn-analyze {
+            background: var(--accent-primary);
+            color: var(--dark-bg);
+            border: none;
+            border-radius: 15px;
+            padding: 18px 40px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-analyze::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(0, 0, 0, 0.1);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn-analyze:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn-analyze:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 255, 255, 0.2);
+        }
+        
+        /* Cards */
+        .card-dark {
+            background: var(--dark-card);
+            border: 1px solid var(--dark-border);
+            border-radius: 20px;
+            padding: 0;
+            margin-bottom: 25px;
+            transition: all 0.3s;
+            overflow: hidden;
+        }
+        
+        .card-dark:hover {
+            border-color: var(--accent-secondary);
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+        
+        .card-header-dark {
+            background: linear-gradient(135deg, #1a1a1a 0%, #252525 100%);
+            border-bottom: 1px solid var(--dark-border);
+            padding: 20px 30px;
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+        
+        .card-body-dark {
+            padding: 30px;
+        }
+        
+        /* Stats */
+        .stat-card {
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 15px 0;
+            letter-spacing: -1px;
+        }
+        
+        /* Indicator Box */
+        .indicator-box {
+            background: linear-gradient(135deg, #1a1a1a 0%, #202020 100%);
+            border-left: 4px solid;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            transition: all 0.3s;
+        }
+        
+        .indicator-box:hover {
+            background: var(--dark-card-hover);
+            transform: translateX(5px);
+        }
+        
+        .indicator-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+        
+        .indicator-desc {
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+        
+        /* Recommendation */
+        .recommendation-box {
+            text-align: center;
+            padding: 50px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #1a1a1a 0%, #252525 100%);
+            border: 2px solid var(--dark-border);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .recommendation-box::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.05) 0%, transparent 70%);
+            animation: pulse 4s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; }
+        }
+        
+        .recommendation-emoji {
+            font-size: 5rem;
+            margin-bottom: 20px;
+            filter: drop-shadow(0 0 20px rgba(255,255,255,0.3));
+        }
+        
+        .recommendation-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            letter-spacing: -1px;
+        }
+        
+        .recommendation-desc {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Reason Item */
+        .reason-item {
+            background: var(--dark-bg);
+            border: 1px solid var(--dark-border);
+            border-left: 4px solid var(--accent-primary);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            font-size: 1.05rem;
+            transition: all 0.3s;
+        }
+        
+        .reason-item:hover {
+            background: var(--dark-card);
+            transform: translateX(5px);
+        }
+        
+        /* Progress Bar */
+        .progress-dark {
+            background: var(--dark-bg);
+            border-radius: 10px;
+            height: 30px;
+            overflow: hidden;
+            border: 1px solid var(--dark-border);
+        }
+        
+        .progress-bar-dark {
+            background: linear-gradient(90deg, #808080 0%, #ffffff 100%);
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: var(--dark-bg);
+            transition: width 1s ease-in-out;
+        }
+        
+        /* Example Tickers */
+        .example-ticker {
+            display: inline-block;
+            background: var(--dark-bg);
+            border: 1px solid var(--dark-border);
+            border-radius: 10px;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+        
+        .example-ticker:hover {
+            background: var(--dark-card);
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255,255,255,0.1);
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 60px;
+        }
+        
+        .spinner-border {
+            width: 4rem;
+            height: 4rem;
+            border: 4px solid var(--dark-border);
+            border-top-color: var(--accent-primary);
+        }
+        
+        #results {
+            display: none;
+        }
+        
+        /* Color Classes */
+        .text-success-custom { color: var(--success) !important; }
+        .text-danger-custom { color: var(--danger) !important; }
+        .text-warning-custom { color: var(--warning) !important; }
+        .text-info-custom { color: var(--info) !important; }
+        
+        .border-success-custom { border-color: var(--success) !important; }
+        .border-danger-custom { border-color: var(--danger) !important; }
+        .border-warning-custom { border-color: var(--warning) !important; }
+        .border-info-custom { border-color: var(--info) !important; }
+        
+        .bg-success-custom { background-color: rgba(0, 255, 136, 0.1) !important; }
+        .bg-danger-custom { background-color: rgba(255, 68, 68, 0.1) !important; }
+        .bg-warning-custom { background-color: rgba(255, 187, 51, 0.1) !important; }
+        
+        /* Badge */
+        .badge-custom {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: var(--dark-bg);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: var(--dark-border);
+            border-radius: 5px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-secondary);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-title {
+                font-size: 2rem;
+            }
+            .stat-value {
+                font-size: 2rem;
+            }
+            .recommendation-title {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-animated"></div>
+    
+    <div class="container-main">
+        <!-- Header -->
+        <div class="header-section">
+            <h1 class="header-title">⚡ STOCK ANALYSIS PRO</h1>
+            <p class="header-subtitle">Advanced Real-Time Stock Market Analysis</p>
+        </div>
+        
+        <!-- Search Box -->
+        <div class="search-box">
+            <h5 class="mb-4" style="color: var(--text-secondary); font-weight: 600;">
+                <i class="bi bi-search"></i> SEARCH STOCK
+            </h5>
+            <div class="row align-items-center g-3">
+                <div class="col-md-8">
+                    <input type="text" id="tickerInput" class="form-control ticker-input" 
+                           placeholder="Enter stock code (e.g., BBCA.JK)" 
+                           value="BBCA.JK">
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-analyze w-100" onclick="analyzeStock()">
+                        <i class="bi bi-graph-up-arrow"></i> ANALYZE
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <small style="color: var(--text-secondary); font-weight: 600;">QUICK SELECT:</small><br>
+                <span class="example-ticker" onclick="setTicker('BBCA.JK')">BBCA.JK</span>
+                <span class="example-ticker" onclick="setTicker('BBRI.JK')">BBRI.JK</span>
+                <span class="example-ticker" onclick="setTicker('TLKM.JK')">TLKM.JK</span>
+                <span class="example-ticker" onclick="setTicker('GOTO.JK')">GOTO.JK</span>
+                <span class="example-ticker" onclick="setTicker('AAPL')">AAPL</span>
+                <span class="example-ticker" onclick="setTicker('TSLA')">TSLA</span>
+            </div>
+        </div>
+        
+        <!-- Loading -->
+        <div class="loading" id="loading">
+            <div class="spinner-border" role="status"></div>
+            <p class="mt-3 fs-5" style="color: var(--text-secondary);">Analyzing data...</p>
+        </div>
+        
+        <!-- Results -->
+        <div id="results">
+            <!-- Company Info -->
+            <div class="card-dark">
+                <div class="card-body-dark">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-1" id="companyName" style="font-weight: 800;">-</h2>
+                            <p class="mb-0" style="color: var(--text-secondary);">
+                                Code: <strong id="tickerCode" style="color: var(--accent-primary);">-</strong>
+                            </p>
+                        </div>
+                        <div class="text-end">
+                            <small id="updateTime" style="color: var(--text-secondary);">-</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Price Stats -->
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card-dark">
+                        <div class="stat-card">
+                            <div class="stat-label">CURRENT PRICE</div>
+                            <div class="stat-value" id="currentPrice">-</div>
+                            <div id="priceChange"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-dark">
+                        <div class="stat-card">
+                            <div class="stat-label">30D HIGH</div>
+                            <div class="stat-value text-danger-custom" id="highPrice">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-dark">
+                        <div class="stat-card">
+                            <div class="stat-label">30D LOW</div>
+                            <div class="stat-value text-success-custom" id="lowPrice">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chart -->
+            <div class="card-dark">
+                <div class="card-header-dark">
+                    <i class="bi bi-graph-up"></i> PRICE CHART (60 DAYS)
+                </div>
+                <div class="card-body-dark">
+                    <canvas id="priceChart" height="80"></canvas>
+                </div>
+            </div>
+            
+            <!-- Analysis -->
+            <div class="card-dark">
+                <div class="card-header-dark">
+                    <i class="bi bi-speedometer2"></i> TECHNICAL ANALYSIS
+                </div>
+                <div class="card-body-dark">
+                    <div class="row g-4">
+                        <div class="col-lg-6">
+                            <div class="indicator-box" id="positionBox">
+                                <div class="indicator-title">
+                                    <span id="positionEmoji"></span> PRICE POSITION: <span id="positionLabel"></span>
+                                </div>
+                                <div class="indicator-desc" id="positionDesc"></div>
+                                <div class="progress-dark mt-3">
+                                    <div id="positionBar" class="progress-bar-dark"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="indicator-box" id="trendBox">
+                                <div class="indicator-title">
+                                    <span id="trendEmoji"></span> TREND: <span id="trendLabel"></span>
+                                </div>
+                                <div class="indicator-desc" id="trendDesc"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-6">
+                            <div class="indicator-box" id="momentumBox">
+                                <div class="indicator-title">
+                                    <span id="momentumEmoji"></span> MOMENTUM: <span id="momentumLabel"></span>
+                                </div>
+                                <div class="indicator-desc" id="momentumDesc"></div>
+                                <div class="progress-dark mt-3">
+                                    <div id="momentumBar" class="progress-bar-dark"></div>
+                                </div>
+                                <small style="color: var(--text-secondary);" class="mt-2 d-block">
+                                    RSI: <span id="rsiValue"></span>/100
+                                </small>
+                            </div>
+                            
+                            <div class="indicator-box border-info-custom">
+                                <div class="indicator-title">
+                                    <span id="volumeEmoji"></span> ACTIVITY: <span id="volumeLabel"></span>
+                                </div>
+                                <div class="indicator-desc" id="volumeDesc"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recommendation -->
+            <div class="card-dark">
+                <div class="card-body-dark p-0">
+                    <div class="recommendation-box" id="recommendationBox">
+                        <div class="recommendation-emoji" id="recommendationEmoji">🎯</div>
+                        <div class="recommendation-title" id="recommendationTitle">-</div>
+                        <div class="recommendation-desc" id="recommendationDesc">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Reasons -->
+            <div class="card-dark">
+                <div class="card-header-dark">
+                    <i class="bi bi-list-check"></i> ANALYSIS DETAILS
+                </div>
+                <div class="card-body-dark">
+                    <div id="reasonsList"></div>
+                </div>
+            </div>
+            
+            <!-- Disclaimer -->
+            <div class="card-dark" style="border-color: var(--warning);">
+                <div class="card-body-dark">
+                    <p class="mb-0" style="color: var(--warning);">
+                        <i class="bi bi-exclamation-triangle"></i> <strong>DISCLAIMER:</strong> 
+                        This analysis is for educational purposes only. Not financial advice. 
+                        Always do your own research before investing.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let priceChart;
+        
+        function formatRupiah(num) {
+            return 'Rp ' + new Intl.NumberFormat('id-ID', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(num);
+        }
+        
+        function setTicker(ticker) {
+            document.getElementById('tickerInput').value = ticker;
+            analyzeStock();
+        }
+        
+        async function analyzeStock() {
+            const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+            
+            if (!ticker) {
+                alert('Please enter a stock code!');
+                return;
+            }
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/analyze-simple', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ticker: ticker })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert('❌ ' + data.error);
+                    return;
+                }
+                
+                displayResults(data);
+                
+            } catch (error) {
+                alert('Error: ' + error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+        
+        function displayResults(data) {
+            document.getElementById('companyName').textContent = data.nama_perusahaan;
+            document.getElementById('tickerCode').textContent = data.ticker;
+            document.getElementById('updateTime').textContent = data.timestamp;
+            
+            const harga = data.harga;
+            document.getElementById('currentPrice').textContent = formatRupiah(harga.sekarang);
+            
+            const changeClass = harga.perubahan >= 0 ? 'text-success-custom' : 'text-danger-custom';
+            const changeIcon = harga.perubahan >= 0 ? '▲' : '▼';
+            document.getElementById('priceChange').innerHTML = `
+                <h5 class="${changeClass}" style="font-weight: 700;">
+                    ${changeIcon} ${formatRupiah(Math.abs(harga.perubahan))} 
+                    (${harga.perubahan >= 0 ? '+' : ''}${harga.perubahan_persen.toFixed(2)}%)
+                </h5>
+                <small style="color: var(--text-secondary);">from yesterday</small>
+            `;
+            
+            document.getElementById('highPrice').textContent = formatRupiah(harga.tertinggi_30d);
+            document.getElementById('lowPrice').textContent = formatRupiah(harga.terendah_30d);
+            
+            const analisis = data.analisis;
+            
+            document.getElementById('positionEmoji').textContent = analisis.posisi_emoji;
+            document.getElementById('positionLabel').textContent = analisis.posisi_harga;
+            document.getElementById('positionDesc').textContent = analisis.posisi_desc;
+            document.getElementById('positionBox').style.borderColor = getColorFromWarna(analisis.posisi_warna);
+            
+            const posBar = document.getElementById('positionBar');
+            posBar.style.width = analisis.posisi_pct + '%';
+            posBar.textContent = analisis.posisi_pct.toFixed(0) + '%';
+            
+            document.getElementById('trendEmoji').textContent = analisis.trend_emoji;
+            document.getElementById('trendLabel').textContent = analisis.trend;
+            document.getElementById('trendDesc').textContent = analisis.trend_desc;
+            document.getElementById('trendBox').style.borderColor = getColorFromWarna(analisis.trend_warna);
+            
+            document.getElementById('momentumEmoji').textContent = analisis.momentum_emoji;
+            document.getElementById('momentumLabel').textContent = analisis.momentum;
+            document.getElementById('momentumDesc').textContent = analisis.momentum_desc;
+            document.getElementById('momentumBox').style.borderColor = getColorFromWarna(analisis.momentum_warna);
+            document.getElementById('rsiValue').textContent = analisis.rsi_value.toFixed(1);
+            
+            const momBar = document.getElementById('momentumBar');
+            momBar.style.width = analisis.momentum_score + '%';
+            momBar.textContent = analisis.momentum_score + '/100';
+            
+            document.getElementById('volumeEmoji').textContent = harga.volume_emoji;
+            document.getElementById('volumeLabel').textContent = harga.volume_status;
+            document.getElementById('volumeDesc').textContent = harga.volume_desc;
+            
+            document.getElementById('recommendationEmoji').textContent = analisis.rekomendasi_emoji;
+            document.getElementById('recommendationTitle').textContent = analisis.rekomendasi;
+            document.getElementById('recommendationTitle').style.color = getColorFromWarna(analisis.rekomendasi_warna);
+            document.getElementById('recommendationDesc').textContent = analisis.rekomendasi_desc;
+            
+            const reasonsList = document.getElementById('reasonsList');
+            reasonsList.innerHTML = '';
+            analisis.alasan.forEach(reason => {
+                const div = document.createElement('div');
+                div.className = 'reason-item';
+                div.textContent = reason;
+                reasonsList.appendChild(div);
+            });
+            
+            createChart(data.chart);
+            
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function getColorFromWarna(warna) {
+            const colors = {
+                'success': 'var(--success)',
+                'danger': 'var(--danger)',
+                'warning': 'var(--warning)',
+                'info': 'var(--info)',
+                'secondary': 'var(--accent-secondary)'
+            };
+            return colors[warna] || 'var(--accent-primary)';
+        }
+        
+        function createChart(chartData) {
+            const ctx = document.getElementById('priceChart');
+            
+            if (priceChart) {
+                priceChart.destroy();
+            }
+            
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.dates,
+                    datasets: [
+                        {
+                            label: 'Price',
+                            data: chartData.prices,
+                            borderColor: '#ffffff',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            pointHoverBackgroundColor: '#ffffff',
+                            pointHoverBorderColor: '#0a0a0a',
+                            pointHoverBorderWidth: 2
+                        },
+                        {
+                            label: '7-Day MA',
+                            data: chartData.ma7,
+                            borderColor: 'var(--success)',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 0
+                        },
+                        {
+                            label: '30-Day MA',
+                            data: chartData.ma30,
+                            borderColor: 'var(--warning)',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: '#b0b0b0',
+                                font: {
+                                    size: 12,
+                                    weight: '600'
+                                },
+                                usePointStyle: true,
+                                padding: 20
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(10, 10, 10, 0.95)',
+                            borderColor: '#333333',
+                            borderWidth: 1,
+                            padding: 12,
+                            titleColor: '#ffffff',
+                            bodyColor: '#b0b0b0',
+                            titleFont: {
+                                size: 14,
+                                weight: '700'
+                            },
+                            bodyFont: {
+                                size: 13
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: '#1a1a1a',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#808080',
+                                font: {
+                                    size: 11
+                                }
+                            }
+                        },
+                        y: {
+                            beginAtZero: false,
+                            grid: {
+                                color: '#1a1a1a',
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#808080',
+                                font: {
+                                    size: 11
+                                },
+                                callback: function(value) {
+                                    return 'Rp ' + value.toLocaleString('id-ID');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        document.getElementById('tickerInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                analyzeStock();
+            }
+        });
+        
+        window.addEventListener('load', function() {
+            analyzeStock();
+        });
+    </script>
+</body>
+</html>

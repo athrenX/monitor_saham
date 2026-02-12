@@ -1,0 +1,10 @@
+__pycache__
+*.pyc
+.venv
+venv
+.env
+.DS_Store
+monitor_saham.py
+telegram_bot.py
+app.py
+*.log

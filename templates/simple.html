@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Analisis Saham Mudah - Untuk Pemula</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .container-main {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        
+        .header-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+        
+        .search-section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .ticker-input {
+            border-radius: 15px;
+            padding: 20px;
+            font-size: 1.3rem;
+            border: 3px solid #e5e7eb;
+            text-transform: uppercase;
+        }
+        
+        .ticker-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.2);
+        }
+        
+        .btn-analyze {
+            border-radius: 15px;
+            padding: 20px 50px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            transition: all 0.3s;
+        }
+        
+        .btn-analyze:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        
+        .card-custom {
+            border: none;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            margin-bottom: 25px;
+            overflow: hidden;
+            transition: transform 0.3s;
+        }
+        
+        .card-custom:hover {
+            transform: translateY(-5px);
+        }
+        
+        .card-header-custom {
+            padding: 25px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            border: none;
+        }
+        
+        .stat-big {
+            text-align: center;
+            padding: 30px;
+        }
+        
+        .stat-value {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 15px 0;
+        }
+        
+        .stat-label {
+            font-size: 1.1rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+        
+        .indicator-box {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 6px solid;
+        }
+        
+        .indicator-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .indicator-desc {
+            font-size: 1rem;
+            color: #4b5563;
+            line-height: 1.6;
+        }
+        
+        .recommendation-box {
+            text-align: center;
+            padding: 40px;
+            border-radius: 20px;
+            margin: 20px 0;
+        }
+        
+        .recommendation-emoji {
+            font-size: 5rem;
+            margin-bottom: 20px;
+        }
+        
+        .recommendation-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .recommendation-desc {
+            font-size: 1.2rem;
+            line-height: 1.8;
+        }
+        
+        .reason-item {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+            border-left: 4px solid #667eea;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 60px;
+        }
+        
+        .spinner-border {
+            width: 4rem;
+            height: 4rem;
+        }
+        
+        #results {
+            display: none;
+        }
+        
+        .info-badge {
+            display: inline-block;
+            padding: 10px 25px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 5px;
+        }
+        
+        .tooltip-info {
+            cursor: help;
+            border-bottom: 2px dotted #667eea;
+        }
+        
+        .example-ticker {
+            display: inline-block;
+            padding: 8px 15px;
+            background: #e0e7ff;
+            border-radius: 8px;
+            margin: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .example-ticker:hover {
+            background: #c7d2fe;
+            transform: scale(1.05);
+        }
+        
+        @media (max-width: 768px) {
+            .header-title {
+                font-size: 1.8rem;
+            }
+            .stat-value {
+                font-size: 2rem;
+            }
+            .recommendation-title {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-main">
+        <!-- Header -->
+        <div class="header-card">
+            <h1 class="header-title">📊 Analisis Saham Mudah</h1>
+            <p class="lead mb-0" style="font-size: 1.2rem;">
+                Pahami kondisi saham dengan bahasa sederhana! <br>
+                <small class="text-muted">Cocok untuk pemula yang baru belajar investasi</small>
+            </p>
+        </div>
+        
+        <!-- Search Section -->
+        <div class="search-section">
+            <h4 class="mb-3"><i class="bi bi-search"></i> Mau cek saham apa?</h4>
+            <div class="row align-items-center">
+                <div class="col-md-8 mb-3 mb-md-0">
+                    <input type="text" id="tickerInput" class="form-control ticker-input" 
+                           placeholder="Ketik kode saham (contoh: BBCA.JK)" 
+                           value="BBCA.JK">
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary btn-analyze w-100" onclick="analyzeStock()">
+                        <i class="bi bi-graph-up-arrow"></i> Analisis!
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mt-4">
+                <small class="text-muted"><strong>Contoh Saham Indonesia:</strong></small><br>
+                <span class="example-ticker" onclick="setTicker('BBCA.JK')">BBCA.JK - BCA</span>
+                <span class="example-ticker" onclick="setTicker('BBRI.JK')">BBRI.JK - BRI</span>
+                <span class="example-ticker" onclick="setTicker('TLKM.JK')">TLKM.JK - Telkom</span>
+                <span class="example-ticker" onclick="setTicker('GOTO.JK')">GOTO.JK - GoTo</span>
+                <span class="example-ticker" onclick="setTicker('ASII.JK')">ASII.JK - Astra</span>
+            </div>
+        </div>
+        
+        <!-- Loading -->
+        <div class="loading" id="loading">
+            <div class="spinner-border text-light" role="status"></div>
+            <p class="mt-3 text-white fs-4">Sedang menganalisis... tunggu sebentar ya! ☕</p>
+        </div>
+        
+        <!-- Results -->
+        <div id="results">
+            <!-- Company Info -->
+            <div class="card-custom">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h2 class="mb-1" id="companyName">-</h2>
+                            <p class="text-muted mb-0">Kode: <strong id="tickerCode">-</strong></p>
+                        </div>
+                        <div class="text-end">
+                            <small class="text-muted" id="updateTime">-</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Price Info -->
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card-custom">
+                        <div class="stat-big">
+                            <div class="stat-label">Harga Sekarang</div>
+                            <div class="stat-value text-primary" id="currentPrice">-</div>
+                            <div id="priceChange"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-custom">
+                        <div class="stat-big">
+                            <div class="stat-label">Tertinggi 30 Hari</div>
+                            <div class="stat-value text-danger" id="highPrice">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card-custom">
+                        <div class="stat-big">
+                            <div class="stat-label">Terendah 30 Hari</div>
+                            <div class="stat-value text-success" id="lowPrice">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chart -->
+            <div class="card-custom">
+                <div class="card-header-custom bg-light">
+                    <i class="bi bi-graph-up"></i> Grafik Harga 60 Hari Terakhir
+                </div>
+                <div class="card-body">
+                    <canvas id="priceChart" height="80"></canvas>
+                    <div class="mt-3 text-center">
+                        <span class="info-badge bg-primary text-white">━━ Harga Saham</span>
+                        <span class="info-badge bg-success text-white">━━ Rata-rata 7 Hari</span>
+                        <span class="info-badge bg-warning text-white">━━ Rata-rata 30 Hari</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Analysis Section -->
+            <div class="card-custom">
+                <div class="card-header-custom bg-light">
+                    <i class="bi bi-lightbulb"></i> Penjelasan Mudah
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-lg-6">
+                            <!-- Position -->
+                            <div class="indicator-box" id="positionBox">
+                                <div class="indicator-title">
+                                    <span id="positionEmoji"></span> Posisi Harga: <span id="positionLabel"></span>
+                                </div>
+                                <div class="indicator-desc" id="positionDesc"></div>
+                                <div class="progress mt-3" style="height: 25px;">
+                                    <div id="positionBar" class="progress-bar" role="progressbar"></div>
+                                </div>
+                                <small class="text-muted mt-2 d-block">Posisi harga dibandingkan 30 hari terakhir</small>
+                            </div>
+                            
+                            <!-- Trend -->
+                            <div class="indicator-box" id="trendBox">
+                                <div class="indicator-title">
+                                    <span id="trendEmoji"></span> Trend: <span id="trendLabel"></span>
+                                </div>
+                                <div class="indicator-desc" id="trendDesc"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-6">
+                            <!-- Momentum -->
+                            <div class="indicator-box" id="momentumBox">
+                                <div class="indicator-title">
+                                    <span id="momentumEmoji"></span> Momentum: <span id="momentumLabel"></span>
+                                </div>
+                                <div class="indicator-desc" id="momentumDesc"></div>
+                                <div class="progress mt-3" style="height: 25px;">
+                                    <div id="momentumBar" class="progress-bar" role="progressbar"></div>
+                                </div>
+                                <small class="text-muted mt-2 d-block">RSI: <span id="rsiValue"></span>/100</small>
+                            </div>
+                            
+                            <!-- Volume -->
+                            <div class="indicator-box border-info">
+                                <div class="indicator-title">
+                                    <span id="volumeEmoji"></span> Aktivitas: <span id="volumeLabel"></span>
+                                </div>
+                                <div class="indicator-desc" id="volumeDesc"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recommendation -->
+            <div class="card-custom">
+                <div class="card-body p-0">
+                    <div class="recommendation-box" id="recommendationBox">
+                        <div class="recommendation-emoji" id="recommendationEmoji">🎯</div>
+                        <div class="recommendation-title" id="recommendationTitle">-</div>
+                        <div class="recommendation-desc" id="recommendationDesc">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Reasons -->
+            <div class="card-custom">
+                <div class="card-header-custom bg-light">
+                    <i class="bi bi-list-check"></i> Kenapa Rekomendasi Ini?
+                </div>
+                <div class="card-body p-4">
+                    <div id="reasonsList"></div>
+                </div>
+            </div>
+            
+            <!-- Disclaimer -->
+            <div class="alert alert-warning" role="alert">
+                <strong>⚠️ Disclaimer:</strong> Analisis ini hanya untuk referensi pembelajaran. 
+                Bukan saran investasi. Selalu lakukan riset sendiri dan konsultasikan dengan ahli sebelum berinvestasi.
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let priceChart;
+        
+        function formatRupiah(num) {
+            return 'Rp ' + new Intl.NumberFormat('id-ID', {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 0
+            }).format(num);
+        }
+        
+        function setTicker(ticker) {
+            document.getElementById('tickerInput').value = ticker;
+            analyzeStock();
+        }
+        
+        async function analyzeStock() {
+            const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+            
+            if (!ticker) {
+                alert('Masukkan kode saham dulu ya! 😊');
+                return;
+            }
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/analyze-simple', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ticker: ticker })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert('❌ ' + data.error);
+                    return;
+                }
+                
+                displayResults(data);
+                
+            } catch (error) {
+                alert('Terjadi kesalahan: ' + error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+        
+        function displayResults(data) {
+            // Company Info
+            document.getElementById('companyName').textContent = data.nama_perusahaan;
+            document.getElementById('tickerCode').textContent = data.ticker;
+            document.getElementById('updateTime').textContent = data.timestamp;
+            
+            // Price Info
+            const harga = data.harga;
+            document.getElementById('currentPrice').textContent = formatRupiah(harga.sekarang);
+            
+            const changeClass = harga.perubahan >= 0 ? 'text-success' : 'text-danger';
+            const changeIcon = harga.perubahan >= 0 ? '▲' : '▼';
+            document.getElementById('priceChange').innerHTML = `
+                <h5 class="${changeClass}">
+                    ${changeIcon} ${formatRupiah(Math.abs(harga.perubahan))} 
+                    (${harga.perubahan >= 0 ? '+' : ''}${harga.perubahan_persen.toFixed(2)}%)
+                </h5>
+                <small class="text-muted">dari kemarin</small>
+            `;
+            
+            document.getElementById('highPrice').textContent = formatRupiah(harga.tertinggi_30d);
+            document.getElementById('lowPrice').textContent = formatRupiah(harga.terendah_30d);
+            
+            // Analysis
+            const analisis = data.analisis;
+            
+            // Position
+            document.getElementById('positionEmoji').textContent = analisis.posisi_emoji;
+            document.getElementById('positionLabel').textContent = analisis.posisi_harga;
+            document.getElementById('positionDesc').textContent = analisis.posisi_desc;
+            document.getElementById('positionBox').style.borderColor = getBorderColor(analisis.posisi_warna);
+            
+            const posBar = document.getElementById('positionBar');
+            posBar.style.width = analisis.posisi_pct + '%';
+            posBar.className = 'progress-bar bg-' + analisis.posisi_warna;
+            posBar.textContent = analisis.posisi_pct.toFixed(0) + '%';
+            
+            // Trend
+            document.getElementById('trendEmoji').textContent = analisis.trend_emoji;
+            document.getElementById('trendLabel').textContent = analisis.trend;
+            document.getElementById('trendDesc').textContent = analisis.trend_desc;
+            document.getElementById('trendBox').style.borderColor = getBorderColor(analisis.trend_warna);
+            
+            // Momentum
+            document.getElementById('momentumEmoji').textContent = analisis.momentum_emoji;
+            document.getElementById('momentumLabel').textContent = analisis.momentum;
+            document.getElementById('momentumDesc').textContent = analisis.momentum_desc;
+            document.getElementById('momentumBox').style.borderColor = getBorderColor(analisis.momentum_warna);
+            document.getElementById('rsiValue').textContent = analisis.rsi_value.toFixed(1);
+            
+            const momBar = document.getElementById('momentumBar');
+            momBar.style.width = analisis.momentum_score + '%';
+            momBar.className = 'progress-bar bg-' + analisis.momentum_warna;
+            momBar.textContent = analisis.momentum_score + '/100';
+            
+            // Volume
+            document.getElementById('volumeEmoji').textContent = harga.volume_emoji;
+            document.getElementById('volumeLabel').textContent = harga.volume_status;
+            document.getElementById('volumeDesc').textContent = harga.volume_desc;
+            
+            // Recommendation
+            const recBox = document.getElementById('recommendationBox');
+            recBox.className = 'recommendation-box bg-' + analisis.rekomendasi_warna + ' bg-opacity-10';
+            document.getElementById('recommendationEmoji').textContent = analisis.rekomendasi_emoji;
+            document.getElementById('recommendationTitle').textContent = analisis.rekomendasi;
+            document.getElementById('recommendationTitle').className = 'recommendation-title text-' + analisis.rekomendasi_warna;
+            document.getElementById('recommendationDesc').textContent = analisis.rekomendasi_desc;
+            
+            // Reasons
+            const reasonsList = document.getElementById('reasonsList');
+            reasonsList.innerHTML = '';
+            analisis.alasan.forEach(reason => {
+                const div = document.createElement('div');
+                div.className = 'reason-item';
+                div.textContent = reason;
+                reasonsList.appendChild(div);
+            });
+            
+            // Create Chart
+            createChart(data.chart);
+            
+            // Show results
+            document.getElementById('results').style.display = 'block';
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function getBorderColor(colorName) {
+            const colors = {
+                'success': '#10b981',
+                'danger': '#ef4444',
+                'warning': '#f59e0b',
+                'info': '#3b82f6',
+                'secondary': '#6b7280'
+            };
+            return colors[colorName] || '#667eea';
+        }
+        
+        function createChart(chartData) {
+            const ctx = document.getElementById('priceChart');
+            
+            if (priceChart) {
+                priceChart.destroy();
+            }
+            
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.dates,
+                    datasets: [
+                        {
+                            label: 'Harga',
+                            data: chartData.prices,
+                            borderColor: '#667eea',
+                            backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Rata-rata 7 Hari',
+                            data: chartData.ma7,
+                            borderColor: '#10b981',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 0
+                        },
+                        {
+                            label: 'Rata-rata 30 Hari',
+                            data: chartData.ma30,
+                            borderColor: '#f59e0b',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 0
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: {
+                                size: 14
+                            },
+                            bodyFont: {
+                                size: 13
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'Rp ' + value.toLocaleString('id-ID');
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Enter key support
+        document.getElementById('tickerInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                analyzeStock();
+            }
+        });
+        
+        // Auto analyze on load
+        window.addEventListener('load', function() {
+            analyzeStock();
+        });
+    </script>
+</body>
+</html>

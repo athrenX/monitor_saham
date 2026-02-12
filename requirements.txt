@@ -1,0 +1,5 @@
+flask==3.0.0
+yfinance==0.2.36
+pandas==2.2.0
+numpy==1.26.3
+Werkzeug==3.0.1

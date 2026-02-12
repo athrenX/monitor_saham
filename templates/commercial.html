@@ -1,0 +1,2370 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Analisis Saham Real-Time dengan AI - Platform trading terbaik untuk investor Indonesia">
+    <meta name="keywords" content="saham, trading, investasi, analisis saham, BEI, IDX">
+    <title>StockPro AI - Real-Time Stock Analysis</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+    <style>
+        :root[data-theme="light"] {
+            --bg-primary: #ffffff;
+            --bg-secondary: #f8f9fa;
+            --bg-tertiary: #e9ecef;
+            --text-primary: #1a1a1a;
+            --text-secondary: #6c757d;
+            --border-color: #dee2e6;
+            --accent-primary: #0066ff;
+            --accent-secondary: #4d94ff;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --card-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            --hover-shadow: 0 5px 30px rgba(0,0,0,0.15);
+        }
+        
+        :root[data-theme="dark"] {
+            --bg-primary: #0a0a0a;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #252525;
+            --text-primary: #ffffff;
+            --text-secondary: #b0b0b0;
+            --border-color: #333333;
+            --accent-primary: #0066ff;
+            --accent-secondary: #4d94ff;
+            --success: #00ff88;
+            --danger: #ff4444;
+            --warning: #ffbb33;
+            --card-shadow: 0 5px 30px rgba(0,0,0,0.5);
+            --hover-shadow: 0 10px 50px rgba(0,0,0,0.8);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+        
+        /* Navbar */
+        .navbar {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+        
+        .navbar-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #0066ff, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo i {
+            background: linear-gradient(135deg, #0066ff, #00d4ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 1.8rem;
+            animation: logoFloat 3s ease-in-out infinite;
+        }
+        
+        @keyframes logoFloat {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-5px) rotate(5deg); }
+        }
+        
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .theme-toggle {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 30px;
+            padding: 8px 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        
+        .theme-toggle:hover {
+            background: linear-gradient(135deg, #0066ff, #00b4ff);
+            color: white;
+            transform: translateY(-2px);
+        }
+        
+        .status-badge {
+            background: var(--success);
+            color: var(--bg-primary);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: currentColor;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.3); }
+        }
+        
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #0066ff, #00b4ff, #0066ff);
+            background-size: 200% 200%;
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            animation: gradientShift 8s ease infinite;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+        
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 50px,
+                    rgba(255,255,255,0.05) 50px,
+                    rgba(255,255,255,0.05) 51px
+                );
+            animation: slideGrid 3s linear infinite;
+        }
+        
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes slideGrid {
+            from { transform: translateX(0); }
+            to { transform: translateX(50px); }
+        }
+        
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .hero p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+        
+        /* Search Section */
+        .search-section {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--card-shadow);
+        }
+        
+        .search-grid {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .input-group {
+            position: relative;
+        }
+        
+        .ticker-input {
+            width: 100%;
+            background: var(--bg-tertiary);
+            border: 2px solid var(--border-color);
+            border-radius: 15px;
+            padding: 18px 50px 18px 20px;
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .ticker-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 4px rgba(0, 102, 255, 0.1);
+        }
+        
+        .input-icon {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 1.2rem;
+        }
+        
+        .btn-analyze {
+            background: linear-gradient(135deg, #0066ff, #00b4ff);
+            background-size: 200% 200%;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 18px 40px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s;
+            animation: gradientShift 3s ease infinite;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-analyze::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+        
+        .btn-analyze:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .btn-analyze:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 102, 255, 0.4);
+        }
+        
+        .btn-analyze:active {
+            transform: translateY(0);
+        }
+        
+        .btn-analyze i {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .btn-analyze span {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .quick-select {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .quick-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 8px 16px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: var(--text-primary);
+            transition: all 0.3s;
+        }
+        
+        .quick-btn:hover {
+            background: linear-gradient(135deg, #0066ff, #00b4ff);
+            color: white;
+            border-color: transparent;
+            transform: translateY(-2px);
+        }
+        
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 0;
+            margin-bottom: 25px;
+            box-shadow: var(--card-shadow);
+            transition: all 0.3s;
+            animation: cardSlideIn 0.5s ease-out;
+        }
+        
+        @keyframes cardSlideIn {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .card:hover {
+            box-shadow: var(--hover-shadow);
+            transform: translateY(-3px);
+        }
+        
+        .card-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 1.1rem;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .card-body {
+            padding: 25px;
+        }
+        
+        /* Grid System */
+        .grid {
+            display: grid;
+            gap: 20px;
+        }
+        
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-4 { grid-template-columns: repeat(4, 1fr); }
+        
+        /* Stat Card */
+        .stat-card {
+            text-align: center;
+            padding: 25px;
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            margin: 10px 0;
+            animation: numberPop 0.5s ease-out;
+            position: relative;
+        }
+        
+        @keyframes numberPop {
+            0% { 
+                transform: scale(0.8) translateY(10px); 
+                opacity: 0; 
+            }
+            60% { 
+                transform: scale(1.05) translateY(-5px); 
+            }
+            100% { 
+                transform: scale(1) translateY(0); 
+                opacity: 1; 
+            }
+        }
+        
+        /* Number counting animation */
+        .stat-value.counting {
+            animation: numberCount 0.8s ease-out;
+        }
+        
+        @keyframes numberCount {
+            0% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .stat-change {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 8px;
+            animation: slideUp 0.6s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(10px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .price-flash {
+            animation: priceFlash 1s ease-out;
+        }
+        
+        @keyframes priceFlash {
+            0% { background-color: transparent; }
+            50% { background-color: rgba(0, 255, 136, 0.2); }
+            100% { background-color: transparent; }
+        }
+        
+        .price-flash-down {
+            animation: priceFlashDown 1s ease-out;
+        }
+        
+        @keyframes priceFlashDown {
+            0% { background-color: transparent; }
+            50% { background-color: rgba(255, 68, 68, 0.2); }
+            100% { background-color: transparent; }
+        }
+        
+        /* Chart */
+        .chart-container {
+            position: relative;
+            height: 600px;
+            padding: 10px;
+            animation: fadeIn 1s ease-out;
+            background: var(--bg-primary);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        
+        #priceChart {
+            width: 100%;
+            height: 100%;
+            animation: chartSlideUp 0.8s ease-out;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes chartSlideUp {
+            from { 
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to { 
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Animated Line Effect */
+        .chart-line-drawing {
+            animation: drawLine 2s ease-out forwards;
+        }
+        
+        @keyframes drawLine {
+            from { stroke-dashoffset: 1000; }
+            to { stroke-dashoffset: 0; }
+        }
+        
+        /* Ticker Tape */
+        .ticker-tape {
+            background: var(--bg-tertiary);
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 0;
+            overflow: hidden;
+            position: relative;
+            margin: 30px 0;
+        }
+        
+        .ticker-content {
+            display: flex;
+            animation: tickerScroll 30s linear infinite;
+            white-space: nowrap;
+        }
+        
+        @keyframes tickerScroll {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+        
+        .ticker-item {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 30px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .ticker-symbol {
+            color: var(--text-primary);
+            margin-right: 8px;
+        }
+        
+        .ticker-price {
+            color: var(--text-secondary);
+            margin-right: 8px;
+        }
+        
+        /* Ticker Tape */
+        .ticker-tape {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            border-bottom: 1px solid var(--border-color);
+            padding: 12px 0;
+            overflow: hidden;
+            position: relative;
+            margin: 30px 0;
+        }
+        
+        .ticker-content {
+            display: flex;
+            animation: tickerScroll 40s linear infinite;
+            white-space: nowrap;
+        }
+        
+        @keyframes tickerScroll {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+        
+        .ticker-item {
+            display: inline-flex;
+            align-items: center;
+            margin: 0 30px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            animation: tickerGlow 3s ease-in-out infinite;
+        }
+        
+        @keyframes tickerGlow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .ticker-symbol {
+            color: var(--text-primary);
+            margin-right: 8px;
+        }
+        
+        .ticker-price {
+            color: var(--text-secondary);
+            margin-right: 8px;
+        }
+        
+        /* Info Box */
+        .info-box {
+            background: var(--bg-tertiary);
+            border-left: 4px solid var(--accent-primary);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .info-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .info-text {
+            color: var(--text-secondary);
+            line-height: 1.8;
+        }
+        
+        /* Recommendation */
+        .recommendation {
+            text-align: center;
+            padding: 40px;
+            border-radius: 15px;
+            background: var(--bg-tertiary);
+        }
+        
+        .recommendation-emoji {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+        
+        .recommendation-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+        }
+        
+        .recommendation-desc {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+        }
+        
+        /* Loading */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 60px;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 4px solid var(--border-color);
+            border-top-color: var(--accent-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        #results {
+            display: none;
+        }
+        
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        
+        .badge-success { background: var(--success); color: var(--bg-primary); }
+        .badge-danger { background: var(--danger); color: white; }
+        .badge-warning { background: var(--warning); color: var(--bg-primary); }
+        
+        /* Colors */
+        .text-success { color: var(--success) !important; }
+        .text-danger { color: var(--danger) !important; }
+        .text-warning { color: var(--warning) !important; }
+        
+        .border-success { border-color: var(--success) !important; }
+        .border-danger { border-color: var(--danger) !important; }
+        .border-warning { border-color: var(--warning) !important; }
+        
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .grid-4 { grid-template-columns: repeat(2, 1fr); }
+            .hero h1 { 
+                font-size: 2rem;
+                gap: 10px;
+            }
+            .hero h1 svg { 
+                width: 40px; 
+                height: 40px; 
+            }
+        }
+        
+        @media (max-width: 1024px) {
+            .grid-3 { grid-template-columns: repeat(2, 1fr); }
+            .chart-container { height: 500px; }
+        }
+        
+        @media (max-width: 768px) {
+            .hero h1 { 
+                font-size: 1.5rem;
+                flex-direction: column;
+                gap: 10px;
+            }
+            .hero h1 svg { 
+                width: 48px; 
+                height: 48px; 
+            }
+            .hero p { font-size: 0.9rem; }
+            .hero { padding: 30px 20px; }
+            .search-grid { grid-template-columns: 1fr; }
+            .btn-analyze { width: 100%; padding: 16px; }
+            .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+            .stat-value { font-size: 1.5rem; }
+            .chart-container { height: 400px; }
+            #tradingview-chart { height: 100%; }
+            .navbar-container { 
+                flex-direction: row;
+                flex-wrap: wrap;
+                gap: 10px; 
+            }
+            .logo { font-size: 1.2rem; }
+            .recommendation-title { font-size: 1.5rem; }
+            .ticker-tape { display: none; }
+            .footer-links { font-size: 0.85rem; }
+        }
+        
+        @media (max-width: 640px) {
+            .container { padding: 12px; }
+            .hero { 
+                padding: 25px 15px; 
+                margin-bottom: 20px;
+            }
+            .hero h1 { 
+                font-size: 1.3rem;
+                text-align: center;
+            }
+            .hero h1 svg { 
+                width: 40px; 
+                height: 40px; 
+            }
+            .hero p {
+                font-size: 0.85rem;
+                text-align: center;
+            }
+            .search-section { padding: 15px; }
+            .ticker-input { 
+                padding: 14px 40px 14px 15px; 
+                font-size: 1rem;
+            }
+            .btn-analyze { 
+                font-size: 1rem;
+                padding: 14px 20px;
+            }
+            .quick-btn { 
+                padding: 6px 12px; 
+                font-size: 0.85rem;
+            }
+            .card-header { 
+                padding: 15px; 
+                font-size: 1rem;
+            }
+            .card-body { padding: 15px; }
+            .stat-card { padding: 15px; }
+            .stat-label { font-size: 0.75rem; }
+            .stat-value { font-size: 1.3rem; }
+            .chart-container { height: 350px; padding: 5px; }
+            .info-box { padding: 15px; }
+            .info-title { font-size: 1rem; }
+            .recommendation { padding: 25px 15px; }
+            .recommendation-emoji { font-size: 3rem; }
+            .recommendation-title { font-size: 1.2rem; }
+            .recommendation-desc { font-size: 0.95rem; }
+            .navbar-container {
+                padding: 0 15px;
+            }
+            .logo { 
+                font-size: 1.1rem;
+            }
+            .logo svg { 
+                width: 28px; 
+                height: 28px; 
+            }
+            .theme-toggle {
+                padding: 6px 12px;
+                font-size: 0.85rem;
+            }
+            .status-badge {
+                padding: 5px 10px;
+                font-size: 0.8rem;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .hero h1 { 
+                font-size: 1.1rem;
+                gap: 8px;
+            }
+            .hero h1 svg { 
+                width: 32px; 
+                height: 32px; 
+            }
+            .hero p { font-size: 0.85rem; }
+            .stat-value { font-size: 1.1rem; }
+            .chart-container { height: 300px; }
+            .recommendation-emoji { font-size: 2.5rem; }
+            .recommendation-title { font-size: 1rem; }
+        }
+        
+        /* Footer */
+        .footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 30px 0;
+            margin-top: 50px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+        
+        .footer-logo {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: 10px;
+        }
+        
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        
+        .footer-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+        
+        .footer-link:hover {
+            color: var(--accent-primary);
+        }
+        
+        /* Candlestick Animation */
+        .candlestick-container {
+            position: fixed;
+            bottom: 100px;
+            right: 20px;
+            display: flex;
+            gap: 8px;
+            opacity: 0.4;
+            z-index: 998;
+        }
+        
+        .candlestick {
+            width: 4px;
+            height: 40px;
+            background: var(--success);
+            position: relative;
+            animation: candleGrow 2s ease-in-out infinite;
+        }
+        
+        .candlestick:nth-child(1) { animation-delay: 0s; height: 50px; }
+        .candlestick:nth-child(2) { animation-delay: 0.2s; background: var(--danger); height: 35px; }
+        .candlestick:nth-child(3) { animation-delay: 0.4s; height: 45px; }
+        .candlestick:nth-child(4) { animation-delay: 0.6s; background: var(--danger); height: 30px; }
+        .candlestick:nth-child(5) { animation-delay: 0.8s; height: 55px; }
+        
+        @keyframes candleGrow {
+            0%, 100% { 
+                transform: scaleY(1);
+                opacity: 0.4;
+            }
+            50% { 
+                transform: scaleY(1.3);
+                opacity: 0.6;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .candlestick-container {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <div class="logo">
+                <svg class="w-8 h-8" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <defs>
+                        <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
+                            <stop offset="50%" style="stop-color:#3b82f6;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                    <rect x="2" y="2" width="36" height="36" rx="8" fill="url(#logoGradient)" opacity="0.9"/>
+                    <path d="M10 24L14 16L18 20L22 12L26 18L30 14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="14" cy="16" r="2" fill="white"/>
+                    <circle cx="22" cy="12" r="2" fill="white"/>
+                    <circle cx="30" cy="14" r="2" fill="white"/>
+                </svg>
+                <span>MarketPulse Pro</span>
+            </div>
+            <div class="nav-controls">
+                <button class="theme-toggle" onclick="toggleTheme()">
+                    <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
+                    <span id="themeText">Dark</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container">
+        <!-- Hero -->
+        <div class="hero">
+            <div class="hero-content">
+                <h1>
+                    <svg class="inline-block w-12 h-12 mb-2" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="heroGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                                <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
+                                <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                            </linearGradient>
+                        </defs>
+                        <circle cx="32" cy="32" r="30" fill="url(#heroGradient)" opacity="0.2"/>
+                        <path d="M16 40L22 28L28 34L34 22L40 30L46 24" stroke="url(#heroGradient)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                        <circle cx="22" cy="28" r="3" fill="#06b6d4"/>
+                        <circle cx="34" cy="22" r="3" fill="#3b82f6"/>
+                        <circle cx="46" cy="24" r="3" fill="#8b5cf6"/>
+                    </svg>
+                    Analisis Saham Real-Time dengan AI
+                </h1>
+                <p>Platform analisis saham paling akurat untuk investor Indonesia</p>
+            </div>
+        </div>
+            </div>
+        </div>
+        
+        <!-- Ticker Tape Real-Time -->
+        <div class="ticker-tape">
+            <div class="ticker-content" id="tickerContent">
+                <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Watchlist & Top Movers Section -->
+        <div style="max-width: 1200px; margin: 0 auto 40px; padding: 0 20px;">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                
+                <!-- Watchlist -->
+                <div class="card" style="padding: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 10px;">
+                            <i class="bi bi-star-fill" style="color: #fbbf24;"></i>
+                            Watchlist Saya
+                        </h3>
+                        <button onclick="addCurrentToWatchlist()" class="btn" style="padding: 8px 16px; font-size: 0.875rem; background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);">
+                            <i class="bi bi-plus-lg"></i> Tambah
+                        </button>
+                    </div>
+                    <div id="watchlistContainer" style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto;">
+                        <!-- Will be populated by JavaScript -->
+                        <p style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                            Belum ada saham di watchlist
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Top Movers -->
+                <div class="card" style="padding: 20px;">
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                        <button onclick="showTopMovers('gainers')" id="btnGainers" class="btn" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+                            🚀 Top Gainers
+                        </button>
+                        <button onclick="showTopMovers('losers')" id="btnLosers" class="btn" style="flex: 1; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
+                            📉 Top Losers
+                        </button>
+                    </div>
+                    <div id="topMoversContainer" style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto;">
+                        <p style="text-align: center; color: var(--text-secondary); padding: 20px;">
+                            Memuat data...
+                        </p>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        
+        <!-- Search -->
+        <div class="search-section">
+            <div class="search-grid">
+                <div class="input-group">
+                    <input type="text" id="tickerInput" class="ticker-input" 
+                           placeholder="Masukkan kode saham (contoh: BBCA.JK)" 
+                           value="BBCA.JK">
+                    <svg class="input-icon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                </div>
+                <button class="btn-analyze" onclick="analyzeStock()">
+                    <svg class="inline-block w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                    <span>ANALISIS SEKARANG</span>
+                </button>
+            </div>
+            
+            <div class="quick-select">
+                <small style="width: 100%; color: var(--text-secondary); font-weight: 600; margin-bottom: 5px;">
+                    <svg class="inline-block w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z"></path>
+                        <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z"></path>
+                    </svg>
+                    Quick Select:
+                </small>
+                <button class="quick-btn" onclick="setTicker('BBCA.JK')">BBCA.JK - BCA</button>
+                <button class="quick-btn" onclick="setTicker('BBRI.JK')">BBRI.JK - BRI</button>
+                <button class="quick-btn" onclick="setTicker('TLKM.JK')">TLKM.JK - Telkom</button>
+                <button class="quick-btn" onclick="setTicker('GOTO.JK')">GOTO.JK - GoTo</button>
+                <button class="quick-btn" onclick="setTicker('ASII.JK')">ASII.JK - Astra</button>
+                <button class="quick-btn" onclick="setTicker('AAPL')">AAPL - Apple</button>
+                <button class="quick-btn" onclick="setTicker('TSLA')">TSLA - Tesla</button>
+            </div>
+        </div>
+        
+        <!-- Loading -->
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p style="color: var(--text-secondary); font-size: 1.1rem;">Menganalisis data saham...</p>
+        </div>
+        
+        <!-- Results -->
+        <div id="results">
+            <!-- Company Info -->
+            <div class="card">
+                <div class="card-body">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                        <div style="flex: 1;">
+                            <h2 id="companyName" style="font-weight: 800; margin-bottom: 5px;">-</h2>
+                            <p style="color: var(--text-secondary); margin: 0;">
+                                Kode: <strong id="tickerCode">-</strong> | 
+                                <span id="updateTime">-</span>
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <button onclick="showAlertModal()" class="btn" style="padding: 10px 20px; background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);">
+                                <i class="bi bi-bell-fill"></i> Set Alert
+                            </button>
+                            <button onclick="toggleChartType()" id="btnChartType" class="btn" style="padding: 10px 20px; background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);">
+                                <i class="bi bi-bar-chart-fill"></i> Candlestick
+                            </button>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 5px;">
+                                Auto-refresh: <strong style="color: var(--success);" id="countdown">30s</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Price Stats -->
+            <div class="grid grid-4">
+                <div class="card">
+                    <div class="stat-card">
+                        <div class="stat-label">Harga Sekarang</div>
+                        <div class="stat-value" id="currentPrice">-</div>
+                        <div class="stat-change" id="priceChange">-</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="stat-card">
+                        <div class="stat-label">Tertinggi 30D</div>
+                        <div class="stat-value text-danger" id="highPrice">-</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="stat-card">
+                        <div class="stat-label">Terendah 30D</div>
+                        <div class="stat-value text-success" id="lowPrice">-</div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="stat-card">
+                        <div class="stat-label">Volume</div>
+                        <div class="stat-value" id="volume" style="font-size: 1.5rem;">-</div>
+                        <div style="font-size: 0.9rem; color: var(--text-secondary);" id="volumeStatus">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Chart -->
+            <div class="card">
+                <div class="card-header">
+                    <span>
+                        <svg class="inline-block w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path>
+                        </svg>
+                        Grafik Harga Professional (60 Hari)
+                    </span>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <span class="badge" style="background: rgba(255,255,255,0.2);">
+                            <svg class="inline-block w-2 h-2" fill="currentColor" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3"/>
+                            </svg>
+                            Harga
+                        </span>
+                        <span class="badge" style="background: rgba(0,255,136,0.2);">
+                            <svg class="inline-block w-2 h-2" fill="var(--success)" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3"/>
+                            </svg>
+                            MA7
+                        </span>
+                        <span class="badge" style="background: rgba(255,187,51,0.2);">
+                            <svg class="inline-block w-2 h-2" fill="var(--warning)" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3"/>
+                            </svg>
+                            MA30
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body" style="padding: 10px;">
+                    <div class="chart-container">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                    
+                    <!-- Chart Info -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; padding: 0 15px;">
+                        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 10px;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 5px;">Open</div>
+                            <div style="font-size: 1.2rem; font-weight: 700;" id="chartOpen">-</div>
+                        </div>
+                        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 10px;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 5px;">High</div>
+                            <div style="font-size: 1.2rem; font-weight: 700; color: var(--danger);" id="chartHigh">-</div>
+                        </div>
+                        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 10px;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 5px;">Low</div>
+                            <div style="font-size: 1.2rem; font-weight: 700; color: var(--success);" id="chartLow">-</div>
+                        </div>
+                        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 10px;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 5px;">Close</div>
+                            <div style="font-size: 1.2rem; font-weight: 700;" id="chartClose">-</div>
+                        </div>
+                        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 10px;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 5px;">Volume</div>
+                            <div style="font-size: 1.2rem; font-weight: 700;" id="chartVolume">-</div>
+                        </div>
+                        <div style="background: var(--bg-tertiary); padding: 15px; border-radius: 10px;">
+                            <div style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 5px;">Avg Volume</div>
+                            <div style="font-size: 1.2rem; font-weight: 700;" id="chartAvgVolume">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Analysis -->
+            <div class="grid grid-2">
+                <div class="card">
+                    <div class="card-header">
+                        <span>
+                            <svg class="inline-block w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Analisis Teknikal
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-box" id="positionBox">
+                            <div class="info-title">
+                                <span id="positionEmoji"></span>
+                                <span>Posisi: <span id="positionLabel"></span></span>
+                            </div>
+                            <div class="info-text" id="positionDesc"></div>
+                        </div>
+                        
+                        <div class="info-box" id="trendBox">
+                            <div class="info-title">
+                                <span id="trendEmoji"></span>
+                                <span>Trend: <span id="trendLabel"></span></span>
+                            </div>
+                            <div class="info-text" id="trendDesc"></div>
+                        </div>
+                        
+                        <div class="info-box" id="momentumBox">
+                            <div class="info-title">
+                                <span id="momentumEmoji"></span>
+                                <span>Momentum: <span id="momentumLabel"></span></span>
+                            </div>
+                            <div class="info-text" id="momentumDesc"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <span>
+                            <svg class="inline-block w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                            </svg>
+                            Rekomendasi AI
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="recommendation">
+                            <div class="recommendation-emoji" id="recommendationEmoji">🎯</div>
+                            <div class="recommendation-title" id="recommendationTitle">-</div>
+                            <div class="recommendation-desc" id="recommendationDesc">-</div>
+                        </div>
+                        
+                        <div style="margin-top: 25px;">
+                            <h4 style="margin-bottom: 15px;">
+                                <svg class="inline-block w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                </svg>
+                                Alasan:
+                            </h4>
+                            <div id="reasonsList"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Disclaimer -->
+            <div class="card" style="border-color: var(--warning);">
+                <div class="card-body">
+                    <p style="margin: 0; color: var(--text-secondary); text-align: center;">
+                        <svg class="inline-block w-5 h-5 mr-2" style="color: var(--warning);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+                        </svg>
+                        <strong>Disclaimer:</strong> Analisis ini hanya untuk referensi pembelajaran. 
+                        Bukan saran investasi. Selalu lakukan riset sendiri (DYOR).
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer">
+        <div class="footer-logo">MarketPulse Pro</div>
+        <p style="margin: 10px 0;">Platform Analisis Saham Real-Time Terbaik di Indonesia</p>
+        <div style="margin: 20px 0; padding: 25px; background: var(--bg-tertiary); border-radius: 15px; max-width: 650px; margin-left: auto; margin-right: auto; border: 2px solid var(--border-color);">
+            <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;">
+                <svg style="width: 52px; height: 52px;" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="url(#devGradient)" stroke-width="2"/>
+                    <path d="M12 6v6l4 2" stroke="url(#devGradient)" stroke-width="2" stroke-linecap="round"/>
+                    <defs>
+                        <linearGradient id="devGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" style="stop-color:#06b6d4;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div style="text-align: left;">
+                    <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 3px;">Dikembangkan oleh</div>
+                    <div style="font-size: 1.4rem; font-weight: 800; background: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Athala Angyn Renaldi</div>
+                </div>
+            </div>
+            <p style="font-size: 0.9rem; color: var(--text-secondary); margin: 8px 0;">Full-Stack Developer & Financial Analyst</p>
+            <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                <a href="mailto:angwynren@gmail.com" style="display: inline-flex; align-items: center; gap: 10px; color: var(--accent-primary); text-decoration: none; font-weight: 600; font-size: 1rem;">
+                    <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                    </svg>
+                    angwynren@gmail.com
+                </a>
+            </div>
+        </div>
+        <p style="font-size: 0.85rem; margin-top: 20px; color: var(--text-secondary);">
+            © 2026 MarketPulse Pro. All rights reserved. | Powered by Yahoo Finance
+        </p>
+    </div>
+    
+    <!-- Candlestick Animation -->
+    <div class="candlestick-container">
+        <div class="candlestick"></div>
+        <div class="candlestick"></div>
+        <div class="candlestick"></div>
+        <div class="candlestick"></div>
+        <div class="candlestick"></div>
+    </div>
+    
+    <script>
+        let priceChart;
+        let autoRefreshInterval;
+        let countdownInterval;
+        let countdownSeconds = 30;
+        let currentTicker = 'BBCA.JK';
+        let currentTheme = 'dark';
+        let tickerData = [];
+        let tickerUpdateInterval;
+        let aiAnalysisCache = {};
+        
+        // AI Analysis Enhancement
+        async function getAIAnalysis(ticker, stockData) {
+            // Check cache first (valid for 5 minutes)
+            const cacheKey = `${ticker}_${Math.floor(Date.now() / 300000)}`;
+            if (aiAnalysisCache[cacheKey]) {
+                return aiAnalysisCache[cacheKey];
+            }
+            
+            try {
+                // Prepare comprehensive data for AI
+                const aiPrompt = `Analisis mendalam saham ${ticker}:
+                Harga: ${stockData.harga.sekarang}
+                Perubahan: ${stockData.harga.perubahan_persen}%
+                Volume: ${stockData.harga.volume}
+                RSI: ${stockData.indikator.rsi}
+                MACD: ${stockData.indikator.macd}
+                Trend: ${stockData.analisis.trend}
+                Momentum: ${stockData.analisis.momentum}
+                
+                Berikan analisis profesional dan rekomendasi investasi yang detail.`;
+                
+                // Enhanced AI analysis with multiple factors
+                const aiInsight = generateAdvancedAIAnalysis(stockData);
+                aiAnalysisCache[cacheKey] = aiInsight;
+                return aiInsight;
+            } catch (error) {
+                console.log('AI Analysis:', error);
+                return null;
+            }
+        }
+        
+        function generateAdvancedAIAnalysis(data) {
+            try {
+                const indicators = data.indikator;
+                const analysis = data.analisis;
+                const price = data.harga;
+                
+                // Helper function to safely convert to number
+                const toNum = (val) => {
+                    if (val === null || val === undefined) return 0;
+                    const num = Number(val);
+                    return isNaN(num) ? 0 : num;
+                };
+                
+            // Multi-factor scoring system
+            let score = 0;
+            let signals = [];
+            
+            // RSI Analysis (30 points)
+            const rsi = toNum(indicators.rsi);
+            if (rsi < 30) {
+                score += 25;
+                signals.push('📈 RSI Oversold - Momentum beli kuat');
+            } else if (rsi > 70) {
+                score -= 15;
+                signals.push('📉 RSI Overbought - Risiko koreksi');
+            } else if (rsi >= 40 && rsi <= 60) {
+                score += 10;
+                signals.push('✅ RSI Normal - Kondisi stabil');
+            }
+            
+            // MACD Analysis (25 points)
+            const macd = toNum(indicators.macd);
+            const macdSignal = toNum(indicators.macd_signal);
+            if (macd > 0 && macdSignal > 0) {
+                score += 20;
+                signals.push('🚀 MACD Bullish - Trend naik kuat');
+            } else if (macd < 0 && macdSignal < 0) {
+                score -= 15;
+                signals.push('⚠️ MACD Bearish - Trend turun');
+            }
+            
+            // Volume Analysis (20 points)
+            const volume = toNum(price.volume);
+            const volumeAvg = toNum(price.volume_avg);
+            if (volumeAvg > 0) {
+                if (volume > volumeAvg * 1.5) {
+                    score += 15;
+                    signals.push('💪 Volume Tinggi - Likuiditas bagus');
+                } else if (volume < volumeAvg * 0.5) {
+                    score -= 10;
+                    signals.push('📊 Volume Rendah - Hati-hati likuiditas');
+                }
+            }
+            
+            // Bollinger Bands (15 points)
+            const priceNow = toNum(price.sekarang);
+            const bbUpper = toNum(indicators.bb_upper);
+            const bbLower = toNum(indicators.bb_lower);
+            const bbRange = bbUpper - bbLower;
+            
+            if (bbRange > 0) {
+                const bbPosition = (priceNow - bbLower) / bbRange;
+                if (bbPosition < 0.2) {
+                    score += 15;
+                    signals.push('🎯 Harga di lower BB - Potensi rebound');
+                } else if (bbPosition > 0.8) {
+                    score -= 10;
+                    signals.push('⚡ Harga di upper BB - Mungkin overvalued');
+                }
+            }
+            
+            // ATR Volatility (10 points)
+            const atr = toNum(indicators.atr);
+            if (priceNow > 0) {
+                if (atr < priceNow * 0.02) {
+                    score += 5;
+                    signals.push('😌 Volatilitas Rendah - Risiko minimal');
+                } else if (atr > priceNow * 0.05) {
+                    score -= 5;
+                    signals.push('🌪️ Volatilitas Tinggi - High risk high return');
+                }
+            }            // Generate AI recommendation
+            let recommendation, emoji, confidence;
+            if (score >= 50) {
+                recommendation = 'STRONG BUY';
+                emoji = '🟢';
+                confidence = 'Sangat Tinggi';
+            } else if (score >= 25) {
+                recommendation = 'BUY';
+                emoji = '🟢';
+                confidence = 'Tinggi';
+            } else if (score >= 0) {
+                recommendation = 'HOLD';
+                emoji = '🟡';
+                confidence = 'Sedang';
+            } else if (score >= -25) {
+                recommendation = 'SELL';
+                emoji = '🔴';
+                confidence = 'Tinggi';
+            } else {
+                recommendation = 'STRONG SELL';
+                emoji = '🔴';
+                confidence = 'Sangat Tinggi';
+            }
+            
+            return {
+                recommendation,
+                emoji,
+                confidence,
+                score: Math.abs(score),
+                signals,
+                summary: `AI Score: ${score}/100 | Confidence: ${confidence}`
+            };
+            } catch (error) {
+                console.error('Error in AI analysis:', error);
+                // Return safe default values
+                return {
+                    recommendation: 'HOLD',
+                    emoji: '🟡',
+                    confidence: 'Rendah',
+                    score: 0,
+                    signals: ['⚠️ Data tidak lengkap - Analisis terbatas'],
+                    summary: 'AI Score: 0/100 | Confidence: Rendah'
+                };
+            }
+        }
+        
+        // Ticker Tape Real-time Update
+        async function updateTickerTape() {
+            const tickers = ['BBCA.JK', 'BBRI.JK', 'TLKM.JK', 'GOTO.JK', 'ASII.JK', 'AAPL', 'TSLA'];
+            
+            try {
+                const promises = tickers.map(ticker => 
+                    fetch('/api/analyze-simple', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ticker: ticker })
+                    }).then(r => r.json())
+                );
+                
+                const results = await Promise.all(promises);
+                tickerData = results.filter(r => !r.error).map(data => ({
+                    symbol: data.ticker,
+                    price: data.harga.sekarang,
+                    change: data.harga.perubahan_persen,
+                    currency: data.ticker.includes('.JK') ? '' : '$'
+                }));
+                
+                renderTickerTape();
+            } catch (error) {
+                console.log('Ticker update:', error.message);
+                // Use fallback data
+                renderTickerTape();
+            }
+        }
+        
+        function renderTickerTape() {
+            const tickerContent = document.getElementById('tickerContent');
+            if (!tickerContent) return;
+            
+            let tickerHTML = '';
+            
+            if (tickerData.length > 0) {
+                tickerHTML = tickerData.map(item => {
+                    const changeClass = item.change >= 0 ? 'text-success' : 'text-danger';
+                    const changeIcon = item.change >= 0 ? '▲' : '▼';
+                    const priceText = item.currency ? 
+                        `${item.currency}${item.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}` :
+                        item.price.toLocaleString('id-ID');
+                    
+                    return `
+                        <div class="ticker-item">
+                            <span class="ticker-symbol">${item.symbol}</span>
+                            <span class="ticker-price">${priceText}</span>
+                            <span class="${changeClass}">${changeIcon} ${Math.abs(item.change).toFixed(2)}%</span>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                // Fallback static data
+                const fallbackData = [
+                    { symbol: 'BBCA.JK', price: '10,250', change: 2.5, isUp: true },
+                    { symbol: 'BBRI.JK', price: '5,175', change: 1.8, isUp: true },
+                    { symbol: 'TLKM.JK', price: '3,850', change: 0.5, isUp: false },
+                    { symbol: 'GOTO.JK', price: '86', change: 3.2, isUp: true },
+                    { symbol: 'ASII.JK', price: '5,525', change: 1.1, isUp: true },
+                    { symbol: 'AAPL', price: '$182.50', change: 2.1, isUp: true },
+                    { symbol: 'TSLA', price: '$198.75', change: 1.2, isUp: false }
+                ];
+                
+                tickerHTML = fallbackData.map(item => `
+                    <div class="ticker-item">
+                        <span class="ticker-symbol">${item.symbol}</span>
+                        <span class="ticker-price">${item.price}</span>
+                        <span class="${item.isUp ? 'text-success' : 'text-danger'}">${item.isUp ? '▲' : '▼'} ${item.change}%</span>
+                    </div>
+                `).join('');
+            }
+            
+            // Duplicate for seamless loop
+            tickerContent.innerHTML = tickerHTML + tickerHTML;
+        }
+        
+        function startTickerUpdates() {
+            renderTickerTape(); // Initial render with fallback
+            updateTickerTape(); // Try to get real data
+            if (tickerUpdateInterval) clearInterval(tickerUpdateInterval);
+            tickerUpdateInterval = setInterval(updateTickerTape, 60000); // Update every 60s
+        }
+        
+        // Theme Toggle
+        function toggleTheme() {
+            currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            
+            const icon = document.getElementById('themeIcon');
+            const text = document.getElementById('themeText');
+            
+            if (currentTheme === 'dark') {
+                icon.className = 'bi bi-moon-stars-fill';
+                text.textContent = 'Dark';
+            } else {
+                icon.className = 'bi bi-sun-fill';
+                text.textContent = 'Light';
+            }
+            
+            // Update chart if exists
+            if (priceChart) {
+                updateChartTheme();
+            }
+            
+            localStorage.setItem('theme', currentTheme);
+        }
+        
+        // Load saved theme
+        window.addEventListener('load', () => {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            if (savedTheme !== currentTheme) {
+                toggleTheme();
+            }
+            startTickerUpdates();
+            analyzeStock();
+        });
+        
+        function formatRupiah(num) {
+            return 'Rp ' + new Intl.NumberFormat('id-ID').format(num);
+        }
+        
+        function setTicker(ticker) {
+            document.getElementById('tickerInput').value = ticker;
+            currentTicker = ticker;
+            analyzeStock();
+        }
+        
+        function startAutoRefresh() {
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            countdownSeconds = 30;
+            
+            countdownInterval = setInterval(() => {
+                countdownSeconds--;
+                document.getElementById('countdown').textContent = countdownSeconds + 's';
+                
+                if (countdownSeconds <= 0) {
+                    countdownSeconds = 30;
+                    analyzeStock(true); // silent refresh
+                }
+            }, 1000);
+        }
+        
+        async function analyzeStock(silent = false) {
+            const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+            currentTicker = ticker;
+            
+            if (!ticker) {
+                alert('Masukkan kode saham!');
+                return;
+            }
+            
+            const isFirstLoad = document.getElementById('results').style.display === 'none';
+            if (!silent && isFirstLoad) {
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('results').style.display = 'none';
+            }
+            
+            try {
+                const response = await fetch('/api/analyze-simple', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticker: ticker })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    alert('❌ ' + data.error);
+                    return;
+                }
+                
+                displayResults(data);
+                
+                if (isFirstLoad) {
+                    startAutoRefresh();
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                if (!silent) alert('Terjadi kesalahan: ' + error.message);
+            } finally {
+                if (!silent && isFirstLoad) {
+                    document.getElementById('loading').style.display = 'none';
+                }
+            }
+        }
+        
+        function displayResults(data) {
+            document.getElementById('companyName').textContent = data.nama_perusahaan;
+            document.getElementById('tickerCode').textContent = data.ticker;
+            document.getElementById('updateTime').textContent = data.timestamp;
+            
+            const harga = data.harga;
+            const priceElement = document.getElementById('currentPrice');
+            const oldPrice = priceElement.getAttribute('data-price') || harga.sekarang;
+            
+            // Price flash animation
+            if (oldPrice != harga.sekarang) {
+                const priceCard = priceElement.closest('.stat-card');
+                if (harga.sekarang > oldPrice) {
+                    priceCard.classList.remove('price-flash-down');
+                    priceCard.classList.add('price-flash');
+                } else {
+                    priceCard.classList.remove('price-flash');
+                    priceCard.classList.add('price-flash-down');
+                }
+                setTimeout(() => {
+                    priceCard.classList.remove('price-flash', 'price-flash-down');
+                }, 1000);
+            }
+            
+            priceElement.textContent = formatRupiah(harga.sekarang);
+            priceElement.setAttribute('data-price', harga.sekarang);
+            
+            const changeClass = harga.perubahan >= 0 ? 'text-success' : 'text-danger';
+            const changeIcon = harga.perubahan >= 0 ? '▲' : '▼';
+            document.getElementById('priceChange').innerHTML = `
+                <span class="${changeClass}">
+                    ${changeIcon} ${formatRupiah(Math.abs(harga.perubahan))} 
+                    (${harga.perubahan >= 0 ? '+' : ''}${harga.perubahan_persen.toFixed(2)}%)
+                </span>
+            `;
+            
+            document.getElementById('highPrice').textContent = formatRupiah(harga.tertinggi_30d);
+            document.getElementById('lowPrice').textContent = formatRupiah(harga.terendah_30d);
+            document.getElementById('volume').textContent = (harga.volume / 1000000).toFixed(1) + 'M';
+            document.getElementById('volumeStatus').textContent = harga.volume_status;
+            
+            const analisis = data.analisis;
+            
+            // Position
+            document.getElementById('positionEmoji').textContent = analisis.posisi_emoji;
+            document.getElementById('positionLabel').textContent = analisis.posisi_harga;
+            document.getElementById('positionDesc').textContent = analisis.posisi_desc;
+            document.getElementById('positionBox').style.borderColor = getColor(analisis.posisi_warna);
+            
+            // Trend
+            document.getElementById('trendEmoji').textContent = analisis.trend_emoji;
+            document.getElementById('trendLabel').textContent = analisis.trend;
+            document.getElementById('trendDesc').textContent = analisis.trend_desc;
+            document.getElementById('trendBox').style.borderColor = getColor(analisis.trend_warna);
+            
+            // Momentum
+            document.getElementById('momentumEmoji').textContent = analisis.momentum_emoji;
+            document.getElementById('momentumLabel').textContent = analisis.momentum;
+            document.getElementById('momentumDesc').textContent = analisis.momentum_desc;
+            document.getElementById('momentumBox').style.borderColor = getColor(analisis.momentum_warna);
+            
+            // Recommendation
+            document.getElementById('recommendationEmoji').textContent = analisis.rekomendasi_emoji;
+            document.getElementById('recommendationTitle').textContent = analisis.rekomendasi;
+            document.getElementById('recommendationTitle').style.color = getColor(analisis.rekomendasi_warna);
+            document.getElementById('recommendationDesc').textContent = analisis.rekomendasi_desc;
+            
+            // Reasons
+            const reasonsList = document.getElementById('reasonsList');
+            reasonsList.innerHTML = '';
+            
+            // Get AI Analysis
+            getAIAnalysis(data.ticker, data).then(aiResult => {
+                if (aiResult) {
+                    // Add AI Summary at top
+                    const aiSummary = document.createElement('div');
+                    aiSummary.className = 'info-box';
+                    aiSummary.style.borderColor = 'var(--accent-primary)';
+                    aiSummary.style.background = 'linear-gradient(135deg, rgba(6,182,212,0.1), rgba(139,92,246,0.1))';
+                    aiSummary.innerHTML = `
+                        <div style="font-weight: 700; font-size: 1.1rem; margin-bottom: 10px;">
+                            ${aiResult.emoji} AI Analysis: ${aiResult.recommendation}
+                        </div>
+                        <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 10px;">
+                            ${aiResult.summary}
+                        </div>
+                        <div style="font-size: 0.85rem;">
+                            ${aiResult.signals.map(s => `<div style="margin: 5px 0;">• ${s}</div>`).join('')}
+                        </div>
+                    `;
+                    reasonsList.appendChild(aiSummary);
+                }
+            });
+            
+            analisis.alasan.forEach(reason => {
+                const div = document.createElement('div');
+                div.className = 'info-box';
+                div.style.borderColor = getColor('info');
+                div.textContent = reason;
+                div.style.fontSize = '0.95rem';
+                div.style.padding = '12px 16px';
+                reasonsList.appendChild(div);
+            });
+            
+            createProfessionalChart(data.chart, harga, data);
+            
+            // Stagger card animations with smooth reveal
+            const cards = document.querySelectorAll('#results .card');
+            cards.forEach((card, index) => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                setTimeout(() => {
+                    card.style.transition = 'all 0.5s ease-out';
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+            
+            // Animate stat values with counting effect
+            document.querySelectorAll('.stat-value').forEach(el => {
+                el.classList.add('counting');
+                setTimeout(() => el.classList.remove('counting'), 800);
+            });
+            
+            document.getElementById('results').style.display = 'block';
+            countdownSeconds = 30;
+        }
+        
+        function getColor(warna) {
+            const colors = {
+                'success': 'var(--success)',
+                'danger': 'var(--danger)',
+                'warning': 'var(--warning)',
+                'info': 'var(--accent-primary)',
+                'secondary': 'var(--text-secondary)'
+            };
+            return colors[warna] || 'var(--accent-primary)';
+        }
+        
+        function createProfessionalChart(chartData, harga, fullData) {
+            const ctx = document.getElementById('priceChart');
+            
+            if (priceChart) {
+                priceChart.destroy();
+            }
+            
+            const isDark = currentTheme === 'dark';
+            const colors = {
+                text: isDark ? '#b0b0b0' : '#6c757d',
+                grid: isDark ? '#1a1a1a' : '#e9ecef',
+                border: isDark ? '#333333' : '#dee2e6',
+                background: isDark ? 'rgba(0,102,255,0.05)' : 'rgba(0,102,255,0.1)',
+                line: isDark ? '#ffffff' : '#1a1a1a',
+                ma7: '#00ff88',
+                ma30: '#ffbb33',
+                volume: isDark ? 'rgba(0, 180, 255, 0.3)' : 'rgba(0, 102, 255, 0.3)'
+            };
+            
+            // Create gradient
+            const gradient = ctx.getContext('2d').createLinearGradient(0, 0, 0, 500);
+            gradient.addColorStop(0, isDark ? 'rgba(0, 102, 255, 0.2)' : 'rgba(0, 102, 255, 0.3)');
+            gradient.addColorStop(1, 'rgba(0, 102, 255, 0)');
+            
+            priceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartData.dates,
+                    datasets: [
+                        {
+                            label: 'Harga',
+                            data: chartData.prices,
+                            borderColor: colors.line,
+                            backgroundColor: gradient,
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: true,
+                            pointRadius: 0,
+                            pointHoverRadius: 8,
+                            pointHoverBackgroundColor: colors.line,
+                            pointHoverBorderColor: '#fff',
+                            pointHoverBorderWidth: 3,
+                            order: 1
+                        },
+                        {
+                            label: 'MA7',
+                            data: chartData.ma7,
+                            borderColor: colors.ma7,
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            borderDash: [5, 5],
+                            order: 2
+                        },
+                        {
+                            label: 'MA30',
+                            data: chartData.ma30,
+                            borderColor: colors.ma30,
+                            borderWidth: 3,
+                            tension: 0.4,
+                            fill: false,
+                            pointRadius: 0,
+                            pointHoverRadius: 6,
+                            borderDash: [5, 5],
+                            order: 3
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    animation: {
+                        duration: 1500,
+                        easing: 'easeInOutQuart'
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            labels: {
+                                color: colors.text,
+                                font: { size: 12, weight: '600' },
+                                padding: 15,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? 'rgba(10,10,10,0.95)' : 'rgba(255,255,255,0.95)',
+                            borderColor: colors.border,
+                            borderWidth: 2,
+                            titleColor: colors.text,
+                            bodyColor: colors.text,
+                            padding: 15,
+                            displayColors: true,
+                            callbacks: {
+                                label: (context) => {
+                                    return context.dataset.label + ': ' + formatRupiah(context.parsed.y);
+                                }
+                            }
+                        },
+                        annotation: {
+                            annotations: {
+                                currentPrice: {
+                                    type: 'line',
+                                    yMin: harga.sekarang,
+                                    yMax: harga.sekarang,
+                                    borderColor: '#0066ff',
+                                    borderWidth: 2,
+                                    borderDash: [10, 5],
+                                    label: {
+                                        display: true,
+                                        content: `Current: ${formatRupiah(harga.sekarang)}`,
+                                        position: 'end',
+                                        backgroundColor: '#0066ff',
+                                        color: '#ffffff',
+                                        font: { weight: 'bold', size: 11 },
+                                        padding: 8,
+                                        borderRadius: 4
+                                    }
+                                },
+                                highPrice: {
+                                    type: 'line',
+                                    yMin: harga.tertinggi_30d,
+                                    yMax: harga.tertinggi_30d,
+                                    borderColor: '#ff4444',
+                                    borderWidth: 1,
+                                    borderDash: [5, 5],
+                                    label: {
+                                        display: true,
+                                        content: 'High',
+                                        position: 'start',
+                                        backgroundColor: 'rgba(255, 68, 68, 0.2)',
+                                        color: '#ff4444',
+                                        font: { size: 10 },
+                                        padding: 4
+                                    }
+                                },
+                                lowPrice: {
+                                    type: 'line',
+                                    yMin: harga.terendah_30d,
+                                    yMax: harga.terendah_30d,
+                                    borderColor: '#00ff88',
+                                    borderWidth: 1,
+                                    borderDash: [5, 5],
+                                    label: {
+                                        display: true,
+                                        content: 'Low',
+                                        position: 'start',
+                                        backgroundColor: 'rgba(0, 255, 136, 0.2)',
+                                        color: '#00ff88',
+                                        font: { size: 10 },
+                                        padding: 4
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: colors.grid,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: colors.text,
+                                font: { size: 11 },
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
+                        },
+                        y: {
+                            position: 'right',
+                            grid: {
+                                color: colors.grid,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: colors.text,
+                                font: { size: 12, weight: '600' },
+                                callback: (value) => formatRupiah(value)
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Update chart info with animation
+            setTimeout(() => {
+                const lastPrice = chartData.prices[chartData.prices.length - 1];
+                const prevPrice = chartData.prices[chartData.prices.length - 2] || lastPrice;
+                const lastVolume = chartData.volumes ? chartData.volumes[chartData.volumes.length - 1] : 0;
+                const avgVolume = chartData.volumes ? chartData.volumes.reduce((a, b) => a + b, 0) / chartData.volumes.length : 0;
+                
+                document.getElementById('chartOpen').textContent = formatRupiah(prevPrice);
+                document.getElementById('chartHigh').textContent = formatRupiah(harga.tertinggi_30d);
+                document.getElementById('chartLow').textContent = formatRupiah(harga.terendah_30d);
+                document.getElementById('chartClose').textContent = formatRupiah(lastPrice);
+                document.getElementById('chartVolume').textContent = (lastVolume / 1000000).toFixed(2) + 'M';
+                document.getElementById('chartAvgVolume').textContent = (avgVolume / 1000000).toFixed(2) + 'M';
+            }, 500);
+        }
+        
+        function updateChartTheme() {
+            if (priceChart) {
+                const isDark = currentTheme === 'dark';
+                const colors = {
+                    text: isDark ? '#b0b0b0' : '#6c757d',
+                    grid: isDark ? '#1a1a1a' : '#e9ecef',
+                    line: isDark ? '#ffffff' : '#1a1a1a'
+                };
+                
+                priceChart.data.datasets[0].borderColor = colors.line;
+                priceChart.data.datasets[0].backgroundColor = isDark ? 
+                    'rgba(0,102,255,0.05)' : 'rgba(0,102,255,0.1)';
+                priceChart.options.scales.x.grid.color = colors.grid;
+                priceChart.options.scales.y.grid.color = colors.grid;
+                priceChart.options.scales.x.ticks.color = colors.text;
+                priceChart.options.scales.y.ticks.color = colors.text;
+                priceChart.options.scales.volume.ticks.color = colors.text;
+                priceChart.options.plugins.legend.labels.color = colors.text;
+                priceChart.update();
+            }
+        }
+        
+        // Enter key support
+        document.getElementById('tickerInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') analyzeStock();
+        });
+        
+        // === WATCHLIST FUNCTIONS ===
+        let currentWatchlist = [];
+        
+        async function loadWatchlist() {
+            try {
+                const response = await fetch('/api/watchlist');
+                const data = await response.json();
+                currentWatchlist = data.watchlist || [];
+                renderWatchlist();
+            } catch (error) {
+                console.log('Error loading watchlist:', error);
+            }
+        }
+        
+        function renderWatchlist() {
+            const container = document.getElementById('watchlistContainer');
+            if (!container) return;
+            
+            if (currentWatchlist.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">Belum ada saham di watchlist</p>';
+                return;
+            }
+            
+            container.innerHTML = currentWatchlist.map(ticker => `
+                <div class="stat-card" style="display: flex; justify-content: space-between; align-items: center; padding: 12px;">
+                    <span style="font-weight: 600; cursor: pointer;" onclick="analyzeFromWatchlist('${ticker}')">${ticker}</span>
+                    <button onclick="removeFromWatchlist('${ticker}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 5px;">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            `).join('');
+        }
+        
+        async function addCurrentToWatchlist() {
+            const ticker = document.getElementById('tickerInput').value.toUpperCase();
+            if (!ticker) {
+                alert('Masukkan ticker terlebih dahulu');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/watchlist/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticker })
+                });
+                const data = await response.json();
+                alert(data.message);
+                if (data.success) loadWatchlist();
+            } catch (error) {
+                alert('Error menambahkan ke watchlist');
+            }
+        }
+        
+        async function removeFromWatchlist(ticker) {
+            if (!confirm(`Hapus ${ticker} dari watchlist?`)) return;
+            
+            try {
+                const response = await fetch('/api/watchlist/remove', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticker })
+                });
+                const data = await response.json();
+                if (data.success) loadWatchlist();
+            } catch (error) {
+                alert('Error menghapus dari watchlist');
+            }
+        }
+        
+        function analyzeFromWatchlist(ticker) {
+            document.getElementById('tickerInput').value = ticker;
+            analyzeStock();
+        }
+        
+        // === TOP MOVERS FUNCTIONS ===
+        let currentMovers = { gainers: [], losers: [] };
+        let currentMoverType = 'gainers';
+        
+        async function loadTopMovers() {
+            try {
+                const response = await fetch('/api/top-movers');
+                const data = await response.json();
+                currentMovers = data;
+                renderTopMovers();
+            } catch (error) {
+                console.log('Error loading top movers:', error);
+            }
+        }
+        
+        function showTopMovers(type) {
+            currentMoverType = type;
+            document.getElementById('btnGainers').style.opacity = type === 'gainers' ? '1' : '0.6';
+            document.getElementById('btnLosers').style.opacity = type === 'losers' ? '1' : '0.6';
+            renderTopMovers();
+        }
+        
+        function renderTopMovers() {
+            const container = document.getElementById('topMoversContainer');
+            if (!container) return;
+            
+            const movers = currentMovers[currentMoverType] || [];
+            
+            if (movers.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 20px;">Memuat data...</p>';
+                return;
+            }
+            
+            container.innerHTML = movers.map((stock, idx) => `
+                <div class="stat-card" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; cursor: pointer;" onclick="analyzeFromWatchlist('${stock.ticker}')">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="background: var(--accent-primary); color: white; width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700;">${idx + 1}</span>
+                        <span style="font-weight: 600;">${stock.ticker}</span>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-weight: 700; color: ${stock.change >= 0 ? '#10b981' : '#ef4444'};">
+                            ${stock.change >= 0 ? '+' : ''}${stock.change.toFixed(2)}%
+                        </div>
+                        <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                            ${stock.price.toLocaleString('id-ID')}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        // === PRICE ALERT FUNCTIONS ===
+        function showAlertModal() {
+            const ticker = document.getElementById('tickerInput').value.toUpperCase();
+            if (!ticker) {
+                alert('Analisis saham terlebih dahulu');
+                return;
+            }
+            document.getElementById('alertTicker').value = ticker;
+            document.getElementById('alertModal').style.display = 'flex';
+        }
+        
+        function closeAlertModal() {
+            document.getElementById('alertModal').style.display = 'none';
+        }
+        
+        async function saveAlert() {
+            const ticker = document.getElementById('alertTicker').value;
+            const condition = document.getElementById('alertCondition').value;
+            const price = parseFloat(document.getElementById('alertPrice').value);
+            
+            if (!price || price <= 0) {
+                alert('Masukkan harga yang valid');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/alerts/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticker, condition, price })
+                });
+                const data = await response.json();
+                alert(data.message);
+                if (data.success) closeAlertModal();
+            } catch (error) {
+                alert('Error membuat alert');
+            }
+        }
+        
+        // === CANDLESTICK CHART FUNCTIONS ===
+        let chartType = 'line';  // 'line' or 'candlestick'
+        
+        function toggleChartType() {
+            chartType = chartType === 'line' ? 'candlestick' : 'line';
+            document.getElementById('btnChartType').innerHTML = chartType === 'line' 
+                ? '<i class="bi bi-bar-chart-fill"></i> Candlestick'
+                : '<i class="bi bi-graph-up"></i> Line Chart';
+            
+            // Reload chart with current ticker
+            const ticker = document.getElementById('tickerInput').value;
+            if (ticker) {
+                if (chartType === 'candlestick') {
+                    loadCandlestickChart(ticker);
+                } else {
+                    analyzeStock(true);  // Silent reload
+                }
+            }
+        }
+        
+        async function loadCandlestickChart(ticker) {
+            try {
+                const response = await fetch('/api/candlestick', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticker, period: '1mo' })
+                });
+                const data = await response.json();
+                
+                if (data.error) {
+                    console.log('Error loading candlestick data');
+                    return;
+                }
+                
+                renderCandlestickChart(data.candles);
+            } catch (error) {
+                console.log('Error:', error);
+            }
+        }
+        
+        function renderCandlestickChart(candles) {
+            const ctx = document.getElementById('priceChart');
+            if (!ctx) return;
+            
+            if (window.myChart) {
+                window.myChart.destroy();
+            }
+            
+            const dates = candles.map(c => c.date);
+            
+            // Create candlestick-like chart using Chart.js
+            window.myChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Price Range',
+                        data: candles.map(c => [c.low, c.high]),
+                        backgroundColor: candles.map(c => c.close >= c.open ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'),
+                        borderColor: candles.map(c => c.close >= c.open ? '#10b981' : '#ef4444'),
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const candle = candles[context.dataIndex];
+                                    return [
+                                        `Open: ${candle.open.toFixed(2)}`,
+                                        `High: ${candle.high.toFixed(2)}`,
+                                        `Low: ${candle.low.toFixed(2)}`,
+                                        `Close: ${candle.close.toFixed(2)}`,
+                                        `Volume: ${candle.volume.toLocaleString()}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: 'var(--text-secondary)' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: 'var(--text-secondary)' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Load initial data
+        loadWatchlist();
+        loadTopMovers();
+        
+        // Refresh top movers every 5 minutes
+        setInterval(loadTopMovers, 5 * 60 * 1000);
+        
+        // Cleanup
+        window.addEventListener('beforeunload', () => {
+            if (autoRefreshInterval) clearInterval(autoRefreshInterval);
+            if (countdownInterval) clearInterval(countdownInterval);
+            if (tickerUpdateInterval) clearInterval(tickerUpdateInterval);
+        });
+    </script>
+    
+    <!-- Price Alert Modal -->
+    <div id="alertModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;">
+        <div class="card" style="max-width: 500px; width: 90%; padding: 30px; position: relative;">
+            <button onclick="closeAlertModal()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">&times;</button>
+            
+            <h3 style="margin-bottom: 20px; font-weight: 700;">🔔 Set Price Alert</h3>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Ticker:</label>
+                <input type="text" id="alertTicker" class="ticker-input" readonly style="background: var(--bg-secondary);">
+            </div>
+            
+            <div style="margin-bottom: 15px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Kondisi:</label>
+                <select id="alertCondition" style="width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 1rem;">
+                    <option value="above">Harga di atas</option>
+                    <option value="below">Harga di bawah</option>
+                </select>
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Target Harga:</label>
+                <input type="number" id="alertPrice" class="ticker-input" placeholder="Masukkan harga target" step="0.01">
+            </div>
+            
+            <button onclick="saveAlert()" class="btn-analyze" style="width: 100%;">
+                <i class="bi bi-check-lg"></i> Simpan Alert
+            </button>
+        </div>
+    </div>
+    
+</body>
+</html>
