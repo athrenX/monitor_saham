@@ -9,23 +9,46 @@ import os
 warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
-app.secret_key = 'your-secret-key-here-change-in-production'
+app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-in-production')
 
-# Persistent storage files
+# In-memory storage for serverless (Vercel doesn't have persistent filesystem)
+# For production, use Redis, PostgreSQL, or Vercel KV
+WATCHLIST_DATA = []
+ALERTS_DATA = []
+
+# Try to use file storage if available (local development)
 WATCHLIST_FILE = 'data/watchlist.json'
 ALERTS_FILE = 'data/alerts.json'
 
-# Ensure data directory exists
-os.makedirs('data', exist_ok=True)
+try:
+    os.makedirs('data', exist_ok=True)
+    
+    if os.path.exists(WATCHLIST_FILE):
+        with open(WATCHLIST_FILE, 'r') as f:
+            WATCHLIST_DATA = json.load(f)
+    
+    if os.path.exists(ALERTS_FILE):
+        with open(ALERTS_FILE, 'r') as f:
+            ALERTS_DATA = json.load(f)
+except:
+    # If file operations fail (serverless), use in-memory storage
+    pass
 
-# Initialize data files if they don't exist
-if not os.path.exists(WATCHLIST_FILE):
-    with open(WATCHLIST_FILE, 'w') as f:
-        json.dump([], f)
+def save_watchlist():
+    """Save watchlist to file if possible"""
+    try:
+        with open(WATCHLIST_FILE, 'w') as f:
+            json.dump(WATCHLIST_DATA, f)
+    except:
+        pass  # Silently fail on serverless
 
-if not os.path.exists(ALERTS_FILE):
-    with open(ALERTS_FILE, 'w') as f:
-        json.dump([], f)
+def save_alerts():
+    """Save alerts to file if possible"""
+    try:
+        with open(ALERTS_FILE, 'w') as f:
+            json.dump(ALERTS_DATA, f)
+    except:
+        pass  # Silently fail on serverless
 
 # === AI-POWERED ANALYSIS FUNCTIONS ===
 def calculate_advanced_signals(df, close_series, high_series, low_series):
@@ -559,12 +582,7 @@ def api_analyze_simple():
 @app.route('/api/watchlist', methods=['GET'])
 def get_watchlist():
     """Get user's watchlist"""
-    try:
-        with open(WATCHLIST_FILE, 'r') as f:
-            watchlist = json.load(f)
-        return jsonify({'watchlist': watchlist})
-    except:
-        return jsonify({'watchlist': []})
+    return jsonify({'watchlist': WATCHLIST_DATA})
 
 @app.route('/api/watchlist/add', methods=['POST'])
 def add_to_watchlist():
@@ -573,13 +591,9 @@ def add_to_watchlist():
     ticker = data.get('ticker', '').upper()
     
     try:
-        with open(WATCHLIST_FILE, 'r') as f:
-            watchlist = json.load(f)
-        
-        if ticker not in watchlist:
-            watchlist.append(ticker)
-            with open(WATCHLIST_FILE, 'w') as f:
-                json.dump(watchlist, f)
+        if ticker not in WATCHLIST_DATA:
+            WATCHLIST_DATA.append(ticker)
+            save_watchlist()
             return jsonify({'success': True, 'message': f'{ticker} ditambahkan ke watchlist'})
         else:
             return jsonify({'success': False, 'message': f'{ticker} sudah ada di watchlist'})
@@ -593,13 +607,9 @@ def remove_from_watchlist():
     ticker = data.get('ticker', '').upper()
     
     try:
-        with open(WATCHLIST_FILE, 'r') as f:
-            watchlist = json.load(f)
-        
-        if ticker in watchlist:
-            watchlist.remove(ticker)
-            with open(WATCHLIST_FILE, 'w') as f:
-                json.dump(watchlist, f)
+        if ticker in WATCHLIST_DATA:
+            WATCHLIST_DATA.remove(ticker)
+            save_watchlist()
             return jsonify({'success': True, 'message': f'{ticker} dihapus dari watchlist'})
         else:
             return jsonify({'success': False, 'message': f'{ticker} tidak ada di watchlist'})
@@ -610,12 +620,7 @@ def remove_from_watchlist():
 @app.route('/api/alerts', methods=['GET'])
 def get_alerts():
     """Get user's price alerts"""
-    try:
-        with open(ALERTS_FILE, 'r') as f:
-            alerts = json.load(f)
-        return jsonify({'alerts': alerts})
-    except:
-        return jsonify({'alerts': []})
+    return jsonify({'alerts': ALERTS_DATA})
 
 @app.route('/api/alerts/add', methods=['POST'])
 def add_alert():
@@ -623,21 +628,16 @@ def add_alert():
     data = request.get_json()
     
     try:
-        with open(ALERTS_FILE, 'r') as f:
-            alerts = json.load(f)
-        
         alert = {
-            'id': len(alerts) + 1,
+            'id': len(ALERTS_DATA) + 1,
             'ticker': data.get('ticker', '').upper(),
             'price': float(data.get('price', 0)),
             'condition': data.get('condition', 'above'),  # above/below
             'created': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         }
         
-        alerts.append(alert)
-        
-        with open(ALERTS_FILE, 'w') as f:
-            json.dump(alerts, f)
+        ALERTS_DATA.append(alert)
+        save_alerts()
         
         return jsonify({'success': True, 'message': 'Alert berhasil dibuat', 'alert': alert})
     except Exception as e:
@@ -650,13 +650,9 @@ def remove_alert():
     alert_id = data.get('id')
     
     try:
-        with open(ALERTS_FILE, 'r') as f:
-            alerts = json.load(f)
-        
-        alerts = [a for a in alerts if a.get('id') != alert_id]
-        
-        with open(ALERTS_FILE, 'w') as f:
-            json.dump(alerts, f)
+        global ALERTS_DATA
+        ALERTS_DATA = [a for a in ALERTS_DATA if a.get('id') != alert_id]
+        save_alerts()
         
         return jsonify({'success': True, 'message': 'Alert dihapus'})
     except Exception as e:
