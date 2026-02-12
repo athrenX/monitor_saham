@@ -224,11 +224,17 @@ def to_float(val):
 def analyze_stock_simple(ticker):
     """Analisis saham versi sederhana untuk orang awam"""
     try:
-        # Download data 3 bulan
-        df = yf.download(ticker, period="3mo", interval="1d", progress=False)
+        # Normalize ticker format
+        ticker = ticker.strip().upper()
         
-        if df.empty:
-            return {"error": "Kode saham tidak ditemukan. Pastikan kode benar (contoh: BBCA.JK untuk saham Indonesia)"}
+        # Download data 3 bulan with better error handling
+        df = yf.download(ticker, period="3mo", interval="1d", progress=False, timeout=10)
+        
+        # Check if download was successful
+        if df is None or df.empty or len(df) < 10:
+            return {
+                "error": f"Data untuk ticker '{ticker}' tidak tersedia atau tidak cukup. Coba ticker lain seperti: BBCA.JK, TLKM.JK, GOTO.JK"
+            }
         
         # Ensure we're working with Series, not DataFrame
         # If multi-level columns exist, flatten them
@@ -561,7 +567,12 @@ def analyze_stock_simple(ticker):
         }
     
     except Exception as e:
-        return {"error": f"Terjadi kesalahan: {str(e)}"}
+        import traceback
+        error_detail = traceback.format_exc()
+        print(f"Error analyzing {ticker}: {error_detail}")  # Log to Vercel
+        return {
+            "error": f"Gagal menganalisis '{ticker}'. Pastikan kode ticker benar (contoh: BBCA.JK, TLKM.JK, GOTO.JK). Detail: {str(e)}"
+        }
 
 @app.route('/')
 def index():
