@@ -4,8 +4,8 @@
 import requests
 import json
 
-# Change this to your Vercel URL
-BASE_URL = "https://your-app.vercel.app"  # UPDATE THIS!
+# Your actual Vercel URL
+BASE_URL = "https://monitor-saham-nine.vercel.app"
 
 def test_homepage():
     """Test if homepage loads"""
@@ -87,11 +87,6 @@ def main():
     print("🧪 VERCEL DEPLOYMENT TEST")
     print("="*60)
     print(f"\nTesting URL: {BASE_URL}\n")
-    
-    if BASE_URL == "https://your-app.vercel.app":
-        print("⚠️  WARNING: Please update BASE_URL with your actual Vercel URL!")
-        print("    Example: https://monitor-saham.vercel.app\n")
-        return
     
     results = []
     results.append(("Homepage", test_homepage()))

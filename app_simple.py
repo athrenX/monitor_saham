@@ -227,8 +227,13 @@ def analyze_stock_simple(ticker):
         # Normalize ticker format
         ticker = ticker.strip().upper()
         
+        print(f"[DEBUG] Downloading data for {ticker}...")  # Vercel log
+        
         # Download data 3 bulan with better error handling
-        df = yf.download(ticker, period="3mo", interval="1d", progress=False, timeout=10)
+        df = yf.download(ticker, period="3mo", interval="1d", progress=False, timeout=30)
+        
+        print(f"[DEBUG] Downloaded {len(df) if df is not None else 0} rows")  # Vercel log
+        print(f"[DEBUG] DataFrame columns: {df.columns.tolist() if df is not None and not df.empty else 'None'}")
         
         # Check if download was successful
         if df is None or df.empty or len(df) < 10:
