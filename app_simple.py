@@ -62,7 +62,7 @@ def send_whatsapp_notification(phone, message):
     try:
         # Example using Fonnte (you need to register and get API key)
         # Get your API key from https://fonnte.com
-        api_key = os.environ.get('FONNTE_API_KEY', '')
+        api_key = os.environ.get('FONNTE_API_KEY', '6CHvYRScRHSK2obG2Xf9')
         
         if not api_key:
             print(f"[WhatsApp] API key not configured. Message: {message} to {phone}")
@@ -712,8 +712,37 @@ def add_alert():
         save_alerts()
         
         message = 'Alert berhasil dibuat'
+        
+        # Kirim pesan WhatsApp welcome jika nomor WA diisi
         if whatsapp:
-            message += f'. Notifikasi WhatsApp akan dikirim ke {whatsapp}'
+            welcome_message = f"""🎯 *Halo dari StockPro AI!*
+
+Terima kasih telah mengaktifkan notifikasi WhatsApp! 📱
+
+✅ Alert Anda telah berhasil dibuat:
+• Saham: {alert['ticker']}
+• Target Harga: Rp {alert['price']:,.0f}
+• Kondisi: {'Di atas' if alert['condition'] == 'above' else 'Di bawah'} target
+
+📊 *Layanan Kami:*
+• Notifikasi real-time saat harga mencapai target
+• Analisis teknikal dengan 13 indikator
+• AI scoring untuk rekomendasi trading
+• Update pasar harian
+
+💡 Anda akan menerima notifikasi otomatis di nomor ini ketika harga saham mencapai target yang Anda tentukan.
+
+Selamat berinvestasi! 🚀
+
+_StockPro AI - Platform Analisis Saham Terpercaya_"""
+            
+            # Kirim pesan welcome
+            wa_sent = send_whatsapp_notification(whatsapp, welcome_message)
+            
+            if wa_sent:
+                message += f'. Pesan welcome telah dikirim ke WhatsApp {whatsapp}'
+            else:
+                message += f'. Alert dibuat, namun pesan welcome gagal dikirim. Pastikan nomor WA {whatsapp} valid.'
         
         return jsonify({'success': True, 'message': message, 'alert': alert})
     except Exception as e:
@@ -800,6 +829,59 @@ def get_candlestick():
         return jsonify({'candles': candles})
     except Exception as e:
         return jsonify({'error': str(e)})
+
+# === WATCHLIST REAL-TIME PRICES ===
+@app.route('/api/watchlist/prices', methods=['GET'])
+def get_watchlist_prices():
+    """Get real-time prices for all watchlist tickers"""
+    try:
+        if not WATCHLIST_DATA:
+            return jsonify({'prices': {}})
+        
+        prices = {}
+        for ticker in WATCHLIST_DATA:
+            try:
+                stock = yf.Ticker(ticker)
+                info = stock.info
+                current_price = info.get('currentPrice') or info.get('regularMarketPrice', 0)
+                prev_close = info.get('previousClose', 0)
+                
+                if current_price and prev_close:
+                    change = current_price - prev_close
+                    change_percent = (change / prev_close) * 100
+                else:
+                    # Fallback: use latest close from history
+                    hist = stock.history(period='1d')
+                    if not hist.empty:
+                        current_price = float(hist['Close'].iloc[-1])
+                        if len(hist) > 1:
+                            prev_close = float(hist['Close'].iloc[-2])
+                        else:
+                            prev_close = current_price
+                        change = current_price - prev_close
+                        change_percent = (change / prev_close) * 100 if prev_close else 0
+                    else:
+                        current_price = 0
+                        change = 0
+                        change_percent = 0
+                
+                prices[ticker] = {
+                    'price': round(current_price, 2),
+                    'change': round(change, 2),
+                    'change_percent': round(change_percent, 2)
+                }
+            except:
+                prices[ticker] = {
+                    'price': 0,
+                    'change': 0,
+                    'change_percent': 0
+                }
+        
+        return jsonify({'prices': prices})
+        
+    except Exception as e:
+        print(f"Error getting watchlist prices: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     print("🚀 Starting Simple Stock Analysis Web App...")

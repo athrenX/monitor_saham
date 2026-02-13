@@ -1035,10 +1035,10 @@
                 <div class="card" style="padding: 20px;">
                     <div style="display: flex; gap: 10px; margin-bottom: 20px;">
                         <button onclick="showTopMovers('gainers')" id="btnGainers" class="btn" style="flex: 1; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                            🚀 Top Gainers
+                            <i class="bi bi-rocket-takeoff-fill"></i> Top Gainers
                         </button>
                         <button onclick="showTopMovers('losers')" id="btnLosers" class="btn" style="flex: 1; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);">
-                            📉 Top Losers
+                            <i class="bi bi-graph-down-arrow"></i> Top Losers
                         </button>
                     </div>
                     <div id="topMoversContainer" style="display: flex; flex-direction: column; gap: 10px; max-height: 300px; overflow-y: auto;">
@@ -1279,7 +1279,7 @@
                     </div>
                     <div class="card-body">
                         <div class="recommendation">
-                            <div class="recommendation-emoji" id="recommendationEmoji">🎯</div>
+                            <div class="recommendation-emoji" id="recommendationEmoji"><i class="bi bi-bullseye" style="font-size: 3rem;"></i></div>
                             <div class="recommendation-title" id="recommendationTitle">-</div>
                             <div class="recommendation-desc" id="recommendationDesc">-</div>
                         </div>
@@ -1437,7 +1437,7 @@
                 signals.push('🚀 MACD Bullish - Trend naik kuat');
             } else if (macd < 0 && macdSignal < 0) {
                 score -= 15;
-                signals.push('⚠️ MACD Bearish - Trend turun');
+                signals.push('<i class="bi bi-exclamation-triangle-fill"></i> MACD Bearish - Trend turun');
             }
             
             // Volume Analysis (20 points)
@@ -1446,10 +1446,10 @@
             if (volumeAvg > 0) {
                 if (volume > volumeAvg * 1.5) {
                     score += 15;
-                    signals.push('💪 Volume Tinggi - Likuiditas bagus');
+                    signals.push('<i class="bi bi-graph-up-arrow"></i> Volume Tinggi - Likuiditas bagus');
                 } else if (volume < volumeAvg * 0.5) {
                     score -= 10;
-                    signals.push('📊 Volume Rendah - Hati-hati likuiditas');
+                    signals.push('<i class="bi bi-bar-chart-fill"></i> Volume Rendah - Hati-hati likuiditas');
                 }
             }
             
@@ -1463,10 +1463,10 @@
                 const bbPosition = (priceNow - bbLower) / bbRange;
                 if (bbPosition < 0.2) {
                     score += 15;
-                    signals.push('🎯 Harga di lower BB - Potensi rebound');
+                    signals.push('<i class="bi bi-bullseye"></i> Harga di lower BB - Potensi rebound');
                 } else if (bbPosition > 0.8) {
                     score -= 10;
-                    signals.push('⚡ Harga di upper BB - Mungkin overvalued');
+                    signals.push('<i class="bi bi-lightning-fill"></i> Harga di upper BB - Mungkin overvalued');
                 }
             }
             
@@ -1475,32 +1475,32 @@
             if (priceNow > 0) {
                 if (atr < priceNow * 0.02) {
                     score += 5;
-                    signals.push('😌 Volatilitas Rendah - Risiko minimal');
+                    signals.push('<i class="bi bi-graph-up"></i> Volatilitas Rendah - Risiko minimal');
                 } else if (atr > priceNow * 0.05) {
                     score -= 5;
-                    signals.push('🌪️ Volatilitas Tinggi - High risk high return');
+                    signals.push('<i class="bi bi-exclamation-triangle-fill"></i> Volatilitas Tinggi - High risk high return');
                 }
             }            // Generate AI recommendation
             let recommendation, emoji, confidence;
             if (score >= 50) {
                 recommendation = 'STRONG BUY';
-                emoji = '🟢';
+                emoji = '<i class="bi bi-circle-fill" style="color: #10b981;"></i>';
                 confidence = 'Sangat Tinggi';
             } else if (score >= 25) {
                 recommendation = 'BUY';
-                emoji = '🟢';
+                emoji = '<i class="bi bi-circle-fill" style="color: #10b981;"></i>';
                 confidence = 'Tinggi';
             } else if (score >= 0) {
                 recommendation = 'HOLD';
-                emoji = '🟡';
+                emoji = '<i class="bi bi-circle-fill" style="color: #fbbf24;"></i>';
                 confidence = 'Sedang';
             } else if (score >= -25) {
                 recommendation = 'SELL';
-                emoji = '🔴';
+                emoji = '<i class="bi bi-circle-fill" style="color: #ef4444;"></i>';
                 confidence = 'Tinggi';
             } else {
                 recommendation = 'STRONG SELL';
-                emoji = '🔴';
+                emoji = '<i class="bi bi-circle-fill" style="color: #ef4444;"></i>';
                 confidence = 'Sangat Tinggi';
             }
             
@@ -1517,10 +1517,10 @@
                 // Return safe default values
                 return {
                     recommendation: 'HOLD',
-                    emoji: '🟡',
+                    emoji: '<i class="bi bi-circle-fill" style="color: #fbbf24;"></i>',
                     confidence: 'Rendah',
                     score: 0,
-                    signals: ['⚠️ Data tidak lengkap - Analisis terbatas'],
+                    signals: ['<i class="bi bi-exclamation-circle-fill"></i> Data tidak lengkap - Analisis terbatas'],
                     summary: 'AI Score: 0/100 | Confidence: Rendah'
                 };
             }
@@ -2131,6 +2131,39 @@
             }
         }
         
+        async function updateWatchlistPrices() {
+            try {
+                const response = await fetch('/api/watchlist/prices');
+                const data = await response.json();
+                const prices = data.prices || {};
+                
+                Object.keys(prices).forEach(ticker => {
+                    const priceEl = document.getElementById(`price-${ticker}`);
+                    if (priceEl) {
+                        const info = prices[ticker];
+                        const color = info.change >= 0 ? '#10b981' : '#ef4444';
+                        const icon = info.change >= 0 ? 'bi-arrow-up' : 'bi-arrow-down';
+                        priceEl.innerHTML = `
+                            <span style="color: ${color};">
+                                <i class="bi ${icon}"></i> 
+                                ${info.price.toLocaleString('id-ID')} 
+                                (${info.change >= 0 ? '+' : ''}${info.change_percent.toFixed(2)}%)
+                            </span>
+                        `;
+                    }
+                });
+            } catch (error) {
+                console.log('Error updating prices:', error);
+            }
+        }
+        
+        // Auto-update prices setiap 30 detik
+        setInterval(() => {
+            if (currentWatchlist.length > 0) {
+                updateWatchlistPrices();
+            }
+        }, 30000);
+        
         function renderWatchlist() {
             const container = document.getElementById('watchlistContainer');
             if (!container) return;
@@ -2142,12 +2175,20 @@
             
             container.innerHTML = currentWatchlist.map(ticker => `
                 <div class="stat-card" style="display: flex; justify-content: space-between; align-items: center; padding: 12px;">
-                    <span style="font-weight: 600; cursor: pointer;" onclick="analyzeFromWatchlist('${ticker}')">${ticker}</span>
+                    <div style="flex: 1; cursor: pointer;" onclick="analyzeFromWatchlist('${ticker}')">
+                        <div style="font-weight: 600;">${ticker}</div>
+                        <div id="price-${ticker}" style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 2px;">
+                            <i class="bi bi-arrow-clockwise"></i> Loading...
+                        </div>
+                    </div>
                     <button onclick="removeFromWatchlist('${ticker}')" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 5px;">
                         <i class="bi bi-trash"></i>
                     </button>
                 </div>
             `).join('');
+            
+            // Load real-time prices
+            updateWatchlistPrices();
         }
         
         async function addCurrentToWatchlist() {
@@ -2433,10 +2474,11 @@
         
         async function loadCandlestickChart(ticker) {
             try {
+                showLoading();
                 const response = await fetch('/api/candlestick', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ticker, period: '1mo' })
+                    body: JSON.stringify({ ticker, period: '3mo' })
                 });
                 const data = await response.json();
                 
