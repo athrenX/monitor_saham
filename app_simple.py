@@ -271,11 +271,12 @@ def analyze_stock_simple(ticker):
         
         print(f"[DEBUG] Downloading data for {ticker}...")  # Vercel log
         
-        # Download data 3 bulan with better error handling
-        df = yf.download(ticker, period="3mo", interval="1d", progress=False, timeout=30)
+        # Download data 3 bulan with better error handling - force single ticker
+        df = yf.download(ticker, period="3mo", interval="1d", progress=False, timeout=30, group_by='ticker')
         
         print(f"[DEBUG] Downloaded {len(df) if df is not None else 0} rows")  # Vercel log
         print(f"[DEBUG] DataFrame columns: {df.columns.tolist() if df is not None and not df.empty else 'None'}")
+        print(f"[DEBUG] DataFrame columns type: {type(df.columns)}")
         
         # Check if download was successful
         if df is None or df.empty or len(df) < 10:
@@ -286,9 +287,19 @@ def analyze_stock_simple(ticker):
         # Ensure we're working with Series, not DataFrame
         # If multi-level columns exist, flatten them
         if isinstance(df.columns, pd.MultiIndex):
+            print(f"[DEBUG] Multi-level columns detected. Levels: {df.columns.nlevels}")
             # Extract data for the specific ticker only
-            ticker_name = df.columns.get_level_values(1)[0]
-            df = df.xs(ticker_name, axis=1, level=1)
+            try:
+                # Try to get the ticker from level 1
+                ticker_name = df.columns.get_level_values(1)[0] if df.columns.nlevels > 1 else df.columns.get_level_values(0)[0]
+                df = df.xs(ticker_name, axis=1, level=1)
+                print(f"[DEBUG] Extracted ticker: {ticker_name}")
+            except Exception as e:
+                print(f"[DEBUG] Failed to extract ticker from multi-level, trying alternative method: {e}")
+                # Alternative: just take level 0 (the standard OHLCV columns)
+                df.columns = df.columns.droplevel(1) if df.columns.nlevels > 1 else df.columns
+        
+        print(f"[DEBUG] Final DataFrame columns: {df.columns.tolist()}")
         
         # Verify required columns exist
         required_cols = ['Close', 'High', 'Low', 'Open', 'Volume']
