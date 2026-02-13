@@ -1073,9 +1073,9 @@
                         <circle cx="34" cy="22" r="3" fill="#3b82f6"/>
                         <circle cx="46" cy="24" r="3" fill="#8b5cf6"/>
                     </svg>
-                    Analisis Saham Real-Time dengan AI
+                    <span data-i18n="hero.title">Analisis Saham Real-Time dengan AI</span>
                 </h1>
-                <p>Platform analisis saham paling akurat untuk investor Indonesia</p>
+                <p data-i18n="hero.subtitle">Platform analisis saham paling akurat untuk investor Indonesia</p>
             </div>
         </div>
             </div>
@@ -1097,10 +1097,10 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                         <h3 style="font-size: 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 10px;">
                             <i class="bi bi-star-fill" style="color: #fbbf24;"></i>
-                            Watchlist Saya
+                            <span data-i18n="watchlist.title">Watchlist Saya</span>
                         </h3>
                         <button onclick="showAddWatchlistModal()" class="btn" style="padding: 8px 16px; font-size: 0.875rem; background: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);">
-                            <i class="bi bi-plus-lg"></i> Tambah Saham
+                            <i class="bi bi-plus-lg"></i> <span data-i18n="watchlist.addButton">Tambah Saham</span>
                         </button>
                     </div>
                     
@@ -1108,7 +1108,7 @@
                     <div style="margin-bottom: 15px; padding: 10px; background: var(--bg-tertiary); border-radius: 8px; display: flex; align-items: center; gap: 10px;">
                         <span style="font-size: 0.875rem; color: var(--text-secondary);">Quick Add:</span>
                         <button onclick="addCurrentToWatchlist()" class="btn" style="flex: 1; padding: 6px 12px; font-size: 0.875rem; background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-                            <i class="bi bi-lightning-fill"></i> Tambah Saham Saat Ini
+                            <i class="bi bi-lightning-fill"></i> <span data-i18n="watchlist.quickAdd">Tambah Saham Saat Ini</span>
                         </button>
                     </div>
                     
@@ -1145,6 +1145,7 @@
             <div class="search-grid">
                 <div class="input-group">
                     <input type="text" id="tickerInput" class="ticker-input" 
+                           data-i18n-placeholder="analysis.inputPlaceholder"
                            placeholder="Masukkan kode saham (contoh: BBCA.JK)" 
                            value="BBCA.JK">
                     <svg class="input-icon w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1155,7 +1156,7 @@
                     <svg class="inline-block w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
                     </svg>
-                    <span>ANALISIS SEKARANG</span>
+                    <span data-i18n="analysis.button">ANALISIS SEKARANG</span>
                 </button>
             </div>
             

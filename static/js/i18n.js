@@ -17,6 +17,15 @@ const translations = {
         'btn.analyze': 'Analisis Sekarang',
         'btn.loading': 'Menganalisis...',
         
+        // Analysis Section
+        'analysis.inputPlaceholder': 'Masukkan kode saham (contoh: BBCA.JK)',
+        'analysis.button': 'ANALISIS SEKARANG',
+        
+        // Watchlist
+        'watchlist.title': 'Watchlist Saya',
+        'watchlist.addButton': 'Tambah Saham',
+        'watchlist.quickAdd': 'Tambah Saham Saat Ini',
+        
         // Company Info
         'company.info': 'Informasi Perusahaan',
         'company.sector': 'Sektor',
@@ -174,6 +183,15 @@ const translations = {
         'input.placeholder': 'Example: BBCA.JK, BBRI.JK, AAPL',
         'btn.analyze': 'Analyze Now',
         'btn.loading': 'Analyzing...',
+        
+        // Analysis Section
+        'analysis.inputPlaceholder': 'Enter stock ticker (example: BBCA.JK)',
+        'analysis.button': 'ANALYZE NOW',
+        
+        // Watchlist
+        'watchlist.title': 'My Watchlist',
+        'watchlist.addButton': 'Add Stock',
+        'watchlist.quickAdd': 'Add Current Stock',
         
         // Company Info
         'company.info': 'Company Information',
@@ -349,6 +367,13 @@ function updatePageLanguage() {
         } else {
             el.textContent = translation;
         }
+    });
+    
+    // Update elements with data-i18n-placeholder attribute
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        const translation = t(key);
+        el.placeholder = translation;
     });
     
     // Update document title
