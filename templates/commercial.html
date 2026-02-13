@@ -929,9 +929,50 @@
             }
         }
         
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-20px) scale(0.95);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+        
+        /* Responsive Modal Styles */
         @media (max-width: 768px) {
             .candlestick-container {
                 display: none;
+            }
+            
+            #alertModal .card {
+                max-width: 100% !important;
+                margin: 0 !important;
+                border-radius: 16px !important;
+            }
+            
+            #alertModal {
+                padding: 16px !important;
+            }
+            
+            #alertModal .card > div:first-child {
+                padding: 20px 24px !important;
+            }
+            
+            #alertModal .card > div:last-child {
+                padding: 24px !important;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            #alertModal .card h3 {
+                font-size: 1.25rem !important;
+            }
+            
+            #alertModal .card > div > div[style*="flex"] button {
+                font-size: 0.9rem !important;
+                padding: 12px 16px !important;
             }
         }
     </style>
@@ -2422,15 +2463,28 @@
         function showAlertModal() {
             const ticker = document.getElementById('tickerInput').value.toUpperCase();
             if (!ticker) {
-                alert('Analisis saham terlebih dahulu');
+                showNotification('⚠️ Analisis saham terlebih dahulu', 'warning');
                 return;
             }
             document.getElementById('alertTicker').value = ticker;
-            document.getElementById('alertModal').style.display = 'flex';
+            const modal = document.getElementById('alertModal');
+            modal.style.display = 'flex';
+            // Trigger animation
+            setTimeout(() => {
+                modal.style.opacity = '1';
+            }, 10);
         }
         
         function closeAlertModal() {
-            document.getElementById('alertModal').style.display = 'none';
+            const modal = document.getElementById('alertModal');
+            modal.style.opacity = '0';
+            setTimeout(() => {
+                modal.style.display = 'none';
+                // Reset form
+                document.getElementById('alertPrice').value = '';
+                document.getElementById('alertWhatsApp').value = '';
+                document.getElementById('alertCondition').value = 'above';
+            }, 200);
         }
         
         async function saveAlert() {
@@ -2440,13 +2494,13 @@
             const whatsapp = document.getElementById('alertWhatsApp').value.trim();
             
             if (!price || price <= 0) {
-                alert('Masukkan harga yang valid');
+                showNotification('⚠️ Masukkan harga target yang valid', 'warning');
                 return;
             }
             
             // Validate WhatsApp if provided
             if (whatsapp && !/^62[0-9]{9,12}$/.test(whatsapp)) {
-                alert('Format WhatsApp tidak valid. Gunakan format: 628123456789');
+                showNotification('⚠️ Format WhatsApp tidak valid. Gunakan: 628123456789', 'error');
                 return;
             }
             
@@ -2462,16 +2516,28 @@
                 const data = await response.json();
                 
                 if (whatsapp) {
-                    alert(data.message + '\n\nNotifikasi WhatsApp akan dikirim ke: ' + whatsapp);
+                    showNotification('✅ ' + data.message + ' (WA: ' + whatsapp + ')', 'success');
                 } else {
-                    alert(data.message);
+                    showNotification('✅ ' + data.message, 'success');
                 }
                 
                 if (data.success) closeAlertModal();
             } catch (error) {
-                alert('Error membuat alert');
+                showNotification('❌ Error membuat alert', 'error');
             }
         }
+        
+        // Close modal when clicking outside
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('alertModal');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        closeAlertModal();
+                    }
+                });
+            }
+        });
         
         // === CANDLESTICK CHART FUNCTIONS ===
         let chartType = 'line';  // 'line' or 'candlestick'
@@ -2698,41 +2764,82 @@
     </div>
     
     <!-- Price Alert Modal -->
-    <div id="alertModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 10000; align-items: center; justify-content: center;">
-        <div class="card" style="max-width: 500px; width: 90%; padding: 30px; position: relative;">
-            <button onclick="closeAlertModal()" style="position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-secondary);">&times;</button>
-            
-            <h3 style="margin-bottom: 20px; font-weight: 700;">🔔 Set Price Alert</h3>
-            
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Ticker:</label>
-                <input type="text" id="alertTicker" class="ticker-input" readonly style="background: var(--bg-secondary);">
+    <div id="alertModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; opacity: 0; transition: opacity 0.2s ease;">
+        <div class="card" style="max-width: 540px; width: 100%; padding: 0; position: relative; margin: auto; animation: modalSlideIn 0.3s ease-out;">
+            <!-- Header -->
+            <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 24px 28px; border-radius: 16px 16px 0 0; position: relative;">
+                <button onclick="closeAlertModal()" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.2); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 20px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='rotate(90deg)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='rotate(0deg)'">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+                
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                        <i class="bi bi-bell-fill" style="color: white;"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-weight: 700; color: white; font-size: 1.5rem;">Set Price Alert</h3>
+                        <p style="margin: 4px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">Dapatkan notifikasi saat target harga tercapai</p>
+                    </div>
+                </div>
             </div>
             
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Kondisi:</label>
-                <select id="alertCondition" style="width: 100%; padding: 12px; border-radius: 12px; border: 2px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 1rem;">
-                    <option value="above">Harga di atas</option>
-                    <option value="below">Harga di bawah</option>
-                </select>
+            <!-- Body -->
+            <div style="padding: 28px;">
+                <div style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; font-size: 0.95rem; color: var(--text-primary);">
+                        <i class="bi bi-tag-fill" style="color: #3b82f6;"></i>
+                        Ticker Saham
+                    </label>
+                    <input type="text" id="alertTicker" class="ticker-input" readonly style="background: var(--bg-tertiary); cursor: not-allowed; font-weight: 600; font-size: 1.1rem; color: var(--text-primary);">
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; font-size: 0.95rem; color: var(--text-primary);">
+                        <i class="bi bi-arrow-left-right" style="color: #8b5cf6;"></i>
+                        Kondisi Alert
+                    </label>
+                    <select id="alertCondition" style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='var(--border)'">
+                        <option value="above">📈 Harga naik di atas target</option>
+                        <option value="below">📉 Harga turun di bawah target</option>
+                    </select>
+                </div>
+                
+                <div style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; font-size: 0.95rem; color: var(--text-primary);">
+                        <i class="bi bi-currency-dollar" style="color: #10b981;"></i>
+                        Target Harga (Rp)
+                    </label>
+                    <input type="number" id="alertPrice" class="ticker-input" placeholder="Contoh: 3800" step="0.01" style="font-size: 1.1rem; font-weight: 600;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='var(--border)'">
+                </div>
+                
+                <div style="margin-bottom: 24px;">
+                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; font-size: 0.95rem; color: var(--text-primary);">
+                        <i class="bi bi-whatsapp" style="color: #25d366;"></i>
+                        WhatsApp Number
+                        <span style="background: var(--bg-tertiary); padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 500; color: var(--text-secondary);">Opsional</span>
+                    </label>
+                    <input type="tel" id="alertWhatsApp" class="ticker-input" placeholder="628123456789" pattern="[0-9]+" style="font-family: 'Courier New', monospace;" onfocus="this.style.borderColor='#25d366'" onblur="this.style.borderColor='var(--border)'">
+                    <div style="display: flex; align-items: start; gap: 8px; margin-top: 8px; padding: 12px; background: var(--bg-tertiary); border-radius: 10px;">
+                        <i class="bi bi-info-circle-fill" style="color: #3b82f6; font-size: 1rem; margin-top: 2px;"></i>
+                        <small style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5;">
+                            <strong>Format:</strong> 628xxx (tanpa tanda +).<br>
+                            Kosongkan jika tidak perlu notifikasi WhatsApp.
+                        </small>
+                    </div>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div style="display: flex; gap: 12px; margin-top: 28px;">
+                    <button onclick="closeAlertModal()" style="flex: 1; padding: 14px 20px; border-radius: 12px; border: 2px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='var(--bg-secondary)'; this.style.transform='translateY(0)'">
+                        <i class="bi bi-x-circle"></i>
+                        Batal
+                    </button>
+                    <button onclick="saveAlert()" style="flex: 2; padding: 14px 20px; border-radius: 12px; border: none; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(59, 130, 246, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.3)'">
+                        <i class="bi bi-check-circle-fill"></i>
+                        Simpan Alert
+                    </button>
+                </div>
             </div>
-            
-            <div style="margin-bottom: 15px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: 600;">Target Harga:</label>
-                <input type="number" id="alertPrice" class="ticker-input" placeholder="Masukkan harga target" step="0.01">
-            </div>
-            
-            <div style="margin-bottom: 20px;">
-                <label style="display: block; margin-bottom: 5px; font-weight: 600;">📱 WhatsApp Number (Opsional):</label>
-                <input type="tel" id="alertWhatsApp" class="ticker-input" placeholder="628123456789" pattern="[0-9]+">
-                <small style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-top: 5px;">
-                    Format: 628xxx (tanpa +). Kosongkan jika tidak perlu notifikasi WA.
-                </small>
-            </div>
-            
-            <button onclick="saveAlert()" class="btn-analyze" style="width: 100%;">
-                <i class="bi bi-check-lg"></i> Simpan Alert
-            </button>
         </div>
     </div>
     
