@@ -271,8 +271,29 @@ def analyze_stock_simple(ticker):
         
         print(f"[DEBUG] Downloading data for {ticker}...")  # Vercel log
         
-        # Download data 3 bulan with better error handling
-        df = yf.download(ticker, period="3mo", interval="1d", progress=False, timeout=30)
+        # Try downloading with retry mechanism
+        df = None
+        max_retries = 3
+        
+        for attempt in range(max_retries):
+            try:
+                print(f"[DEBUG] Attempt {attempt + 1}/{max_retries}")
+                # Download data 3 bulan with better error handling
+                df = yf.download(ticker, period="3mo", interval="1d", progress=False, timeout=30)
+                
+                if df is not None and not df.empty and len(df) >= 10:
+                    print(f"[DEBUG] Download successful on attempt {attempt + 1}")
+                    break
+                else:
+                    print(f"[DEBUG] Attempt {attempt + 1} returned insufficient data")
+                    if attempt < max_retries - 1:
+                        import time
+                        time.sleep(1)  # Wait 1 second before retry
+            except Exception as e:
+                print(f"[DEBUG] Attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    import time
+                    time.sleep(1)
         
         print(f"[DEBUG] Downloaded {len(df) if df is not None else 0} rows")  # Vercel log
         print(f"[DEBUG] DataFrame columns: {df.columns.tolist() if df is not None and not df.empty else 'None'}")
