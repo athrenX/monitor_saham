@@ -949,30 +949,41 @@
             #alertModal .card {
                 max-width: 100% !important;
                 margin: 0 !important;
-                border-radius: 16px !important;
             }
             
             #alertModal {
-                padding: 16px !important;
+                padding: 12px !important;
             }
             
             #alertModal .card > div:first-child {
-                padding: 20px 24px !important;
+                padding: 16px 20px !important;
             }
             
             #alertModal .card > div:last-child {
-                padding: 24px !important;
+                padding: 16px 20px !important;
+            }
+            
+            #alertModal .card h3 {
+                font-size: 1.1rem !important;
+            }
+            
+            #alertModal .card p {
+                font-size: 0.75rem !important;
             }
         }
         
         @media (max-width: 480px) {
             #alertModal .card h3 {
-                font-size: 1.25rem !important;
+                font-size: 1rem !important;
             }
             
-            #alertModal .card > div > div[style*="flex"] button {
+            #alertModal .card > div > div[style*="grid"] {
+                grid-template-columns: 1fr !important;
+            }
+            
+            #alertModal .card button {
                 font-size: 0.9rem !important;
-                padding: 12px 16px !important;
+                padding: 11px 14px !important;
             }
         }
     </style>
@@ -2764,78 +2775,77 @@
     </div>
     
     <!-- Price Alert Modal -->
-    <div id="alertModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.75); backdrop-filter: blur(4px); z-index: 10000; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; opacity: 0; transition: opacity 0.2s ease;">
-        <div class="card" style="max-width: 540px; width: 100%; padding: 0; position: relative; margin: auto; animation: modalSlideIn 0.3s ease-out;">
+    <div id="alertModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); z-index: 10000; align-items: center; justify-content: center; padding: 16px; overflow-y: auto; opacity: 0; transition: opacity 0.2s ease;">
+        <div class="card" style="max-width: 480px; width: 100%; padding: 0; position: relative; margin: auto; animation: modalSlideIn 0.3s ease-out; box-shadow: 0 20px 60px rgba(0,0,0,0.5);">
             <!-- Header -->
-            <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 24px 28px; border-radius: 16px 16px 0 0; position: relative;">
-                <button onclick="closeAlertModal()" style="position: absolute; top: 16px; right: 16px; background: rgba(255,255,255,0.2); border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 20px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.transform='rotate(90deg)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='rotate(0deg)'">
+            <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 20px 24px; border-radius: 16px 16px 0 0; position: relative;">
+                <button onclick="closeAlertModal()" style="position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,0.25); border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 18px; cursor: pointer; color: white; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.4)'; this.style.transform='rotate(90deg)'" onmouseout="this.style.background='rgba(255,255,255,0.25)'; this.style.transform='rotate(0deg)'">
                     <i class="bi bi-x-lg"></i>
                 </button>
                 
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="width: 48px; height: 48px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <div style="width: 40px; height: 40px; background: rgba(255,255,255,0.25); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
                         <i class="bi bi-bell-fill" style="color: white;"></i>
                     </div>
                     <div>
-                        <h3 style="margin: 0; font-weight: 700; color: white; font-size: 1.5rem;">Set Price Alert</h3>
-                        <p style="margin: 4px 0 0 0; color: rgba(255,255,255,0.9); font-size: 0.9rem;">Dapatkan notifikasi saat target harga tercapai</p>
+                        <h3 style="margin: 0; font-weight: 700; color: white; font-size: 1.25rem;">Set Price Alert</h3>
+                        <p style="margin: 2px 0 0 0; color: rgba(255,255,255,0.85); font-size: 0.8rem;">Notifikasi saat target tercapai</p>
                     </div>
                 </div>
             </div>
             
             <!-- Body -->
-            <div style="padding: 28px;">
-                <div style="margin-bottom: 20px;">
-                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; font-size: 0.95rem; color: var(--text-primary);">
-                        <i class="bi bi-tag-fill" style="color: #3b82f6;"></i>
+            <div style="padding: 20px 24px;">
+                <div style="margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary);">
+                        <i class="bi bi-tag-fill" style="color: #3b82f6; font-size: 0.9rem;"></i>
                         Ticker Saham
                     </label>
-                    <input type="text" id="alertTicker" class="ticker-input" readonly style="background: var(--bg-tertiary); cursor: not-allowed; font-weight: 600; font-size: 1.1rem; color: var(--text-primary);">
+                    <input type="text" id="alertTicker" class="ticker-input" readonly style="background: var(--bg-tertiary); cursor: not-allowed; font-weight: 600; font-size: 1rem; color: var(--text-primary); padding: 12px 16px;">
                 </div>
                 
-                <div style="margin-bottom: 20px;">
-                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; font-size: 0.95rem; color: var(--text-primary);">
-                        <i class="bi bi-arrow-left-right" style="color: #8b5cf6;"></i>
+                <div style="margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary);">
+                        <i class="bi bi-arrow-left-right" style="color: #8b5cf6; font-size: 0.9rem;"></i>
                         Kondisi Alert
                     </label>
-                    <select id="alertCondition" style="width: 100%; padding: 14px 16px; border-radius: 12px; border: 2px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 1rem; font-weight: 500; cursor: pointer; transition: all 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='var(--border)'">
-                        <option value="above">📈 Harga naik di atas target</option>
-                        <option value="below">📉 Harga turun di bawah target</option>
+                    <select id="alertCondition" style="width: 100%; padding: 12px 16px; border-radius: 10px; border: 2px solid var(--border); background: var(--bg-primary); color: var(--text-primary); font-size: 0.95rem; font-weight: 500; cursor: pointer; transition: all 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='var(--border)'">
+                        <option value="above">📈 Harga di atas target</option>
+                        <option value="below">📉 Harga di bawah target</option>
                     </select>
                 </div>
                 
-                <div style="margin-bottom: 20px;">
-                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; font-size: 0.95rem; color: var(--text-primary);">
-                        <i class="bi bi-currency-dollar" style="color: #10b981;"></i>
+                <div style="margin-bottom: 16px;">
+                    <label style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary);">
+                        <i class="bi bi-currency-dollar" style="color: #10b981; font-size: 0.9rem;"></i>
                         Target Harga (Rp)
                     </label>
-                    <input type="number" id="alertPrice" class="ticker-input" placeholder="Contoh: 3800" step="0.01" style="font-size: 1.1rem; font-weight: 600;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='var(--border)'">
+                    <input type="number" id="alertPrice" class="ticker-input" placeholder="Contoh: 6650" step="0.01" style="font-size: 1rem; font-weight: 600; padding: 12px 16px;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='var(--border)'">
                 </div>
                 
-                <div style="margin-bottom: 24px;">
-                    <label style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-weight: 600; font-size: 0.95rem; color: var(--text-primary);">
-                        <i class="bi bi-whatsapp" style="color: #25d366;"></i>
-                        WhatsApp Number
-                        <span style="background: var(--bg-tertiary); padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 500; color: var(--text-secondary);">Opsional</span>
+                <div style="margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 6px; margin-bottom: 6px; font-weight: 600; font-size: 0.85rem; color: var(--text-primary);">
+                        <i class="bi bi-whatsapp" style="color: #25d366; font-size: 0.9rem;"></i>
+                        WhatsApp
+                        <span style="background: var(--bg-tertiary); padding: 2px 6px; border-radius: 4px; font-size: 0.7rem; font-weight: 500; color: var(--text-secondary);">Opsional</span>
                     </label>
-                    <input type="tel" id="alertWhatsApp" class="ticker-input" placeholder="628123456789" pattern="[0-9]+" style="font-family: 'Courier New', monospace;" onfocus="this.style.borderColor='#25d366'" onblur="this.style.borderColor='var(--border)'">
-                    <div style="display: flex; align-items: start; gap: 8px; margin-top: 8px; padding: 12px; background: var(--bg-tertiary); border-radius: 10px;">
-                        <i class="bi bi-info-circle-fill" style="color: #3b82f6; font-size: 1rem; margin-top: 2px;"></i>
-                        <small style="color: var(--text-secondary); font-size: 0.85rem; line-height: 1.5;">
-                            <strong>Format:</strong> 628xxx (tanpa tanda +).<br>
-                            Kosongkan jika tidak perlu notifikasi WhatsApp.
+                    <input type="tel" id="alertWhatsApp" class="ticker-input" placeholder="628123456789" pattern="[0-9]+" style="font-family: 'Courier New', monospace; padding: 12px 16px; font-size: 0.95rem;" onfocus="this.style.borderColor='#25d366'" onblur="this.style.borderColor='var(--border)'">
+                    <div style="display: flex; align-items: start; gap: 6px; margin-top: 6px; padding: 10px; background: var(--bg-tertiary); border-radius: 8px;">
+                        <i class="bi bi-info-circle-fill" style="color: #3b82f6; font-size: 0.85rem; margin-top: 1px;"></i>
+                        <small style="color: var(--text-secondary); font-size: 0.75rem; line-height: 1.4;">
+                            Format: 628xxx (tanpa +). Kosongkan jika tidak perlu notifikasi WA.
                         </small>
                     </div>
                 </div>
                 
                 <!-- Action Buttons -->
-                <div style="display: flex; gap: 12px; margin-top: 28px;">
-                    <button onclick="closeAlertModal()" style="flex: 1; padding: 14px 20px; border-radius: 12px; border: 2px solid var(--border); background: var(--bg-secondary); color: var(--text-primary); font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px;" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.transform='translateY(-2px)'" onmouseout="this.style.background='var(--bg-secondary)'; this.style.transform='translateY(0)'">
-                        <i class="bi bi-x-circle"></i>
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-top: 20px;">
+                    <button onclick="closeAlertModal()" style="padding: 12px 16px; border-radius: 10px; border: 2px solid var(--border); background: transparent; color: var(--text-primary); font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;" onmouseover="this.style.background='var(--bg-tertiary)'; this.style.borderColor='var(--text-secondary)'" onmouseout="this.style.background='transparent'; this.style.borderColor='var(--border)'">
+                        <i class="bi bi-x-circle" style="font-size: 1rem;"></i>
                         Batal
                     </button>
-                    <button onclick="saveAlert()" style="flex: 2; padding: 14px 20px; border-radius: 12px; border: none; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 16px rgba(59, 130, 246, 0.4)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.3)'">
-                        <i class="bi bi-check-circle-fill"></i>
+                    <button onclick="saveAlert()" style="padding: 12px 16px; border-radius: 10px; border: none; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(59, 130, 246, 0.5)'" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(59, 130, 246, 0.4)'">
+                        <i class="bi bi-check-circle-fill" style="font-size: 1rem;"></i>
                         Simpan Alert
                     </button>
                 </div>
