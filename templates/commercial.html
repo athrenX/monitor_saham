@@ -2164,6 +2164,27 @@
             }
         }, 30000);
         
+        // Auto-check alerts setiap 60 detik
+        async function checkAlerts() {
+            try {
+                const response = await fetch('/api/alerts/check', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                const data = await response.json();
+                if (data.triggered > 0) {
+                    console.log(`[Alert] ${data.triggered} alert(s) triggered!`);
+                }
+            } catch (error) {
+                console.log('Error checking alerts:', error);
+            }
+        }
+        
+        // Check alerts every 60 seconds
+        setInterval(checkAlerts, 60000);
+        // Check immediately on load
+        setTimeout(checkAlerts, 5000);
+        
         function renderWatchlist() {
             const container = document.getElementById('watchlistContainer');
             if (!container) return;

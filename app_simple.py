@@ -715,13 +715,16 @@ def add_alert():
         
         # Kirim pesan WhatsApp welcome jika nomor WA diisi
         if whatsapp:
+            # Format harga dengan proper formatting
+            formatted_price = f"{alert['price']:,.2f}" if alert['price'] >= 1000 else f"{alert['price']:.2f}"
+            
             welcome_message = f"""🎯 *Halo dari StockPro AI!*
 
 Terima kasih telah mengaktifkan notifikasi WhatsApp! 📱
 
 ✅ Alert Anda telah berhasil dibuat:
 • Saham: {alert['ticker']}
-• Target Harga: Rp {alert['price']:,.0f}
+• Target Harga: Rp {formatted_price}
 • Kondisi: {'Di atas' if alert['condition'] == 'above' else 'Di bawah'} target
 
 📊 *Layanan Kami:*
@@ -881,6 +884,91 @@ def get_watchlist_prices():
         
     except Exception as e:
         print(f"Error getting watchlist prices: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/alerts/check', methods=['POST'])
+def check_alerts():
+    """Check if any alerts should be triggered based on current prices"""
+    try:
+        triggered_alerts = []
+        
+        for alert in ALERTS_DATA:
+            if alert.get('triggered'):
+                continue  # Skip already triggered alerts
+            
+            ticker = alert['ticker']
+            target_price = float(alert['price'])
+            condition = alert['condition']
+            whatsapp = alert.get('whatsapp')
+            
+            # Get current price
+            try:
+                stock = yf.Ticker(ticker)
+                hist = stock.history(period='1d')
+                if hist.empty:
+                    continue
+                
+                current_price = float(hist['Close'].iloc[-1])
+                
+                # Check if alert should trigger
+                should_trigger = False
+                if condition == 'above' and current_price >= target_price:
+                    should_trigger = True
+                elif condition == 'below' and current_price <= target_price:
+                    should_trigger = True
+                
+                if should_trigger:
+                    alert['triggered'] = True
+                    triggered_alerts.append(alert)
+                    
+                    # Send WhatsApp notification
+                    if whatsapp:
+                        # Format prices properly
+                        formatted_current = f"{current_price:,.2f}" if current_price >= 1000 else f"{current_price:.2f}"
+                        formatted_target = f"{target_price:,.2f}" if target_price >= 1000 else f"{target_price:.2f}"
+                        
+                        price_change = ((current_price - target_price) / target_price) * 100
+                        
+                        notification_message = f"""🚨 *ALERT TRIGGERED - StockPro AI*
+
+Harga saham {ticker} telah mencapai target Anda!
+
+📊 *Detail Alert:*
+• Saham: {ticker}
+• Target: Rp {formatted_target}
+• Harga Saat Ini: Rp {formatted_current}
+• Perubahan: {price_change:+.2f}%
+• Kondisi: {'Naik melewati' if condition == 'above' else 'Turun melewati'} target
+
+⏰ Waktu: {datetime.now().strftime('%d %B %Y, %H:%M WIB')}
+
+💡 *Saran:*
+• Cek analisis teknikal terkini di dashboard
+• Pertimbangkan take profit atau cut loss
+• Perhatikan volume dan momentum pasar
+
+Tetap bijak dalam berinvestasi! 📈
+
+_StockPro AI - Notifikasi Real-time_"""
+                        
+                        send_whatsapp_notification(whatsapp, notification_message)
+                        print(f"[Alert] Triggered for {ticker}: {current_price} {'>' if condition == 'above' else '<'} {target_price}")
+                
+            except Exception as e:
+                print(f"[Alert] Error checking {ticker}: {e}")
+                continue
+        
+        # Save updated alerts
+        save_alerts()
+        
+        return jsonify({
+            'checked': len(ALERTS_DATA),
+            'triggered': len(triggered_alerts),
+            'alerts': triggered_alerts
+        })
+        
+    except Exception as e:
+        print(f"Error checking alerts: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
