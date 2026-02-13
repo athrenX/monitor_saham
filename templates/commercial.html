@@ -744,6 +744,12 @@
         .border-danger { border-color: var(--danger) !important; }
         .border-warning { border-color: var(--warning) !important; }
         
+        /* Animations */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
         /* Responsive */
         @media (max-width: 1200px) {
             .grid-4 { grid-template-columns: repeat(2, 1fr); }
@@ -896,8 +902,27 @@
             }
             .stat-value { font-size: 1.1rem; }
             .grid-4 { 
-                grid-template-columns: 1fr;
+                grid-template-columns: repeat(2, 1fr);
                 gap: 8px;
+            }
+            .stat-card {
+                padding: 12px;
+            }
+            .stat-label {
+                font-size: 0.7rem;
+            }
+            .stat-value {
+                font-size: 1rem;
+            }
+            .card {
+                margin-bottom: 12px;
+            }
+            .card-header {
+                padding: 12px;
+                font-size: 0.9rem;
+            }
+            .card-body {
+                padding: 12px;
             }
             .quick-select {
                 grid-template-columns: 1fr;
@@ -1137,6 +1162,29 @@
         <div class="ticker-tape">
             <div class="ticker-content" id="tickerContent">
                 <!-- Will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Indonesian Market Monitor (IDX) -->
+        <div style="max-width: 1200px; margin: 30px auto; padding: 0 20px;">
+            <div class="card" style="padding: 20px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+                    <h3 style="font-size: 1.3rem; font-weight: 800; display: flex; align-items: center; gap: 12px; color: var(--text-primary);">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M7 16l4-6 4 4 5-8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <span>🇮🇩 Bursa Indonesia (IDX) - Real-Time</span>
+                    </h3>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <span id="idxTime" style="font-size: 0.85rem; color: var(--text-secondary); font-family: 'JetBrains Mono', monospace;"></span>
+                        <span class="badge" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); animation: pulse 2s infinite;">● LIVE</span>
+                    </div>
+                </div>
+                
+                <div id="idxMonitor" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                    <!-- Will be populated by JavaScript -->
+                </div>
             </div>
         </div>
         
@@ -1751,6 +1799,101 @@
             tickerUpdateInterval = setInterval(updateTickerTape, 60000); // Update every 60s
         }
         
+        // Indonesian Market Monitor (IDX)
+        let idxUpdateInterval;
+        const idxStocks = [
+            { ticker: 'BBCA.JK', name: 'Bank BCA' },
+            { ticker: 'BBRI.JK', name: 'Bank BRI' },
+            { ticker: 'TLKM.JK', name: 'Telkom' },
+            { ticker: 'GOTO.JK', name: 'GoTo' },
+            { ticker: 'ASII.JK', name: 'Astra Int.' },
+            { ticker: 'BBNI.JK', name: 'Bank BNI' },
+            { ticker: 'BMRI.JK', name: 'Bank Mandiri' },
+            { ticker: 'UNVR.JK', name: 'Unilever' }
+        ];
+        
+        async function updateIDXMonitor() {
+            try {
+                const promises = idxStocks.map(stock => 
+                    fetch('/api/analyze-simple', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ticker: stock.ticker })
+                    }).then(r => r.json()).catch(() => ({ error: true, ticker: stock.ticker }))
+                );
+                
+                const results = await Promise.all(promises);
+                renderIDXMonitor(results);
+                
+                // Update time
+                const now = new Date();
+                document.getElementById('idxTime').textContent = now.toLocaleTimeString('id-ID');
+            } catch (error) {
+                console.log('IDX Monitor update error:', error);
+            }
+        }
+        
+        function renderIDXMonitor(data) {
+            const container = document.getElementById('idxMonitor');
+            if (!container) return;
+            
+            let html = '';
+            
+            data.forEach((item, index) => {
+                const stock = idxStocks[index];
+                
+                if (item.error) {
+                    html += `
+                        <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 16px; border-left: 4px solid var(--text-secondary);">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">${stock.ticker}</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">${stock.name}</div>
+                                </div>
+                            </div>
+                            <div style="font-size: 0.75rem; color: var(--text-secondary);">Data tidak tersedia</div>
+                        </div>
+                    `;
+                } else {
+                    const change = item.harga.perubahan_persen;
+                    const isUp = change >= 0;
+                    const changeColor = isUp ? 'var(--success)' : 'var(--danger)';
+                    const changeIcon = isUp ? '▲' : '▼';
+                    const borderColor = isUp ? '#10b981' : '#ef4444';
+                    
+                    html += `
+                        <div style="background: var(--bg-tertiary); border-radius: 12px; padding: 16px; border-left: 4px solid ${borderColor}; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">
+                            <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                                <div style="flex: 1;">
+                                    <div style="font-weight: 700; font-size: 0.95rem; color: var(--text-primary);">${stock.ticker}</div>
+                                    <div style="font-size: 0.8rem; color: var(--text-secondary);">${stock.name}</div>
+                                </div>
+                                <div style="background: ${isUp ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; color: ${changeColor};">
+                                    ${changeIcon} ${Math.abs(change).toFixed(2)}%
+                                </div>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+                                <div style="font-size: 1.25rem; font-weight: 800; color: var(--text-primary); font-family: 'JetBrains Mono', monospace;">
+                                    Rp ${item.harga.sekarang.toLocaleString('id-ID')}
+                                </div>
+                                <div style="font-size: 0.75rem; color: var(--text-secondary);">
+                                    Vol: ${(item.harga.volume / 1000000).toFixed(1)}M
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function startIDXMonitor() {
+            updateIDXMonitor(); // Initial update
+            if (idxUpdateInterval) clearInterval(idxUpdateInterval);
+            idxUpdateInterval = setInterval(updateIDXMonitor, 30000); // Update every 30s
+        }
+        
         // Theme Toggle
         function toggleTheme() {
             currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
@@ -1782,6 +1925,7 @@
                 toggleTheme();
             }
             startTickerUpdates();
+            startIDXMonitor();
             analyzeStock();
         });
         
