@@ -6,6 +6,7 @@ from datetime import datetime
 import warnings
 import json
 import os
+import requests
 warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
@@ -49,6 +50,47 @@ def save_alerts():
             json.dump(ALERTS_DATA, f)
     except:
         pass  # Silently fail on serverless
+
+def send_whatsapp_notification(phone, message):
+    """
+    Send WhatsApp notification using API
+    For production, use services like:
+    - Twilio WhatsApp API
+    - WhatsApp Business API
+    - Fonnte.com (Indonesian service)
+    """
+    try:
+        # Example using Fonnte (you need to register and get API key)
+        # Get your API key from https://fonnte.com
+        api_key = os.environ.get('FONNTE_API_KEY', '')
+        
+        if not api_key:
+            print(f"[WhatsApp] API key not configured. Message: {message} to {phone}")
+            return False
+        
+        url = "https://api.fonnte.com/send"
+        headers = {
+            'Authorization': api_key
+        }
+        data = {
+            'target': phone,
+            'message': message,
+            'countryCode': '62'
+        }
+        
+        response = requests.post(url, headers=headers, data=data, timeout=10)
+        result = response.json()
+        
+        if result.get('status'):
+            print(f"[WhatsApp] Sent to {phone}: {message}")
+            return True
+        else:
+            print(f"[WhatsApp] Failed to send: {result}")
+            return False
+            
+    except Exception as e:
+        print(f"[WhatsApp] Error: {e}")
+        return False
 
 # === AI-POWERED ANALYSIS FUNCTIONS ===
 def calculate_advanced_signals(df, close_series, high_series, low_series):
@@ -654,18 +696,26 @@ def add_alert():
     data = request.get_json()
     
     try:
+        whatsapp = data.get('whatsapp', '').strip()
+        
         alert = {
             'id': len(ALERTS_DATA) + 1,
             'ticker': data.get('ticker', '').upper(),
             'price': float(data.get('price', 0)),
             'condition': data.get('condition', 'above'),  # above/below
-            'created': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            'whatsapp': whatsapp if whatsapp else None,  # Store WhatsApp number
+            'created': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            'triggered': False
         }
         
         ALERTS_DATA.append(alert)
         save_alerts()
         
-        return jsonify({'success': True, 'message': 'Alert berhasil dibuat', 'alert': alert})
+        message = 'Alert berhasil dibuat'
+        if whatsapp:
+            message += f'. Notifikasi WhatsApp akan dikirim ke {whatsapp}'
+        
+        return jsonify({'success': True, 'message': message, 'alert': alert})
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)})
 

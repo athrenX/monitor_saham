@@ -1075,7 +1075,9 @@
         
         <!-- Results -->
         <div id="results">
-            <!-- Company Info -->
+
+            
+            <!-- Company Info Card (Above Chart) -->
             <div class="card">
                 <div class="card-body">
                     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
@@ -2203,20 +2205,36 @@
             const ticker = document.getElementById('alertTicker').value;
             const condition = document.getElementById('alertCondition').value;
             const price = parseFloat(document.getElementById('alertPrice').value);
+            const whatsapp = document.getElementById('alertWhatsApp').value.trim();
             
             if (!price || price <= 0) {
                 alert('Masukkan harga yang valid');
                 return;
             }
             
+            // Validate WhatsApp if provided
+            if (whatsapp && !/^62[0-9]{9,12}$/.test(whatsapp)) {
+                alert('Format WhatsApp tidak valid. Gunakan format: 628123456789');
+                return;
+            }
+            
             try {
+                const payload = { ticker, condition, price };
+                if (whatsapp) payload.whatsapp = whatsapp;
+                
                 const response = await fetch('/api/alerts/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ticker, condition, price })
+                    body: JSON.stringify(payload)
                 });
                 const data = await response.json();
-                alert(data.message);
+                
+                if (whatsapp) {
+                    alert(data.message + '\n\nNotifikasi WhatsApp akan dikirim ke: ' + whatsapp);
+                } else {
+                    alert(data.message);
+                }
+                
                 if (data.success) closeAlertModal();
             } catch (error) {
                 alert('Error membuat alert');
@@ -2267,40 +2285,87 @@
             const ctx = document.getElementById('priceChart');
             if (!ctx) return;
             
-            if (window.myChart) {
-                window.myChart.destroy();
+            if (priceChart) {
+                priceChart.destroy();
             }
             
-            const dates = candles.map(c => c.date);
+            const dates = candles.map(c => {
+                const d = new Date(c.date);
+                return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+            });
             
-            // Create candlestick-like chart using Chart.js
-            window.myChart = new Chart(ctx, {
+            // Create candlestick data
+            const candleData = candles.map(c => ({
+                x: c.date,
+                o: c.open,
+                h: c.high,
+                l: c.low,
+                c: c.close
+            }));
+            
+            // Create bars for candlestick visualization
+            const bodyData = candles.map(c => [c.open, c.close]);
+            const wickHighData = candles.map((c, i) => c.high);
+            const wickLowData = candles.map((c, i) => c.low);
+            
+            priceChart = new Chart(ctx, {
                 type: 'bar',
                 data: {
                     labels: dates,
-                    datasets: [{
-                        label: 'Price Range',
-                        data: candles.map(c => [c.low, c.high]),
-                        backgroundColor: candles.map(c => c.close >= c.open ? 'rgba(16, 185, 129, 0.3)' : 'rgba(239, 68, 68, 0.3)'),
-                        borderColor: candles.map(c => c.close >= c.open ? '#10b981' : '#ef4444'),
-                        borderWidth: 2
-                    }]
+                    datasets: [
+                        {
+                            label: 'Price',
+                            data: candles.map(c => c.close),
+                            backgroundColor: candles.map(c => 
+                                c.close >= c.open ? 'rgba(16, 185, 129, 0.7)' : 'rgba(239, 68, 68, 0.7)'
+                            ),
+                            borderColor: candles.map(c => 
+                                c.close >= c.open ? '#10b981' : '#ef4444'
+                            ),
+                            borderWidth: 2,
+                            barThickness: 10
+                        },
+                        {
+                            label: 'Volume',
+                            data: candles.map(c => c.volume / 1000000),
+                            backgroundColor: 'rgba(99, 102, 241, 0.3)',
+                            borderColor: '#6366f1',
+                            borderWidth: 1,
+                            yAxisID: 'volume',
+                            type: 'bar'
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
                     plugins: {
-                        legend: { display: false },
+                        legend: {
+                            display: true,
+                            labels: {
+                                color: document.body.classList.contains('dark-theme') ? '#e5e7eb' : '#374151',
+                                font: { size: 12 }
+                            }
+                        },
                         tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: '#6366f1',
+                            borderWidth: 1,
                             callbacks: {
                                 label: function(context) {
                                     const candle = candles[context.dataIndex];
                                     return [
-                                        `Open: ${candle.open.toFixed(2)}`,
-                                        `High: ${candle.high.toFixed(2)}`,
-                                        `Low: ${candle.low.toFixed(2)}`,
-                                        `Close: ${candle.close.toFixed(2)}`,
-                                        `Volume: ${candle.volume.toLocaleString()}`
+                                        `Open: Rp ${candle.open.toLocaleString('id-ID')}`,
+                                        `High: Rp ${candle.high.toLocaleString('id-ID')}`,
+                                        `Low: Rp ${candle.low.toLocaleString('id-ID')}`,
+                                        `Close: Rp ${candle.close.toLocaleString('id-ID')}`,
+                                        `Volume: ${(candle.volume / 1000000).toFixed(2)}M`
                                     ];
                                 }
                             }
@@ -2308,12 +2373,37 @@
                     },
                     scales: {
                         y: {
-                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
-                            ticks: { color: 'var(--text-secondary)' }
+                            type: 'linear',
+                            position: 'left',
+                            grid: {
+                                color: document.body.classList.contains('dark-theme') ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                color: document.body.classList.contains('dark-theme') ? '#9ca3af' : '#6b7280',
+                                callback: function(value) {
+                                    return 'Rp ' + value.toLocaleString('id-ID');
+                                }
+                            }
+                        },
+                        volume: {
+                            type: 'linear',
+                            position: 'right',
+                            grid: { display: false },
+                            ticks: {
+                                color: document.body.classList.contains('dark-theme') ? '#9ca3af' : '#6b7280',
+                                callback: function(value) {
+                                    return value.toFixed(1) + 'M';
+                                }
+                            },
+                            max: Math.max(...candles.map(c => c.volume / 1000000)) * 3
                         },
                         x: {
                             grid: { display: false },
-                            ticks: { color: 'var(--text-secondary)' }
+                            ticks: {
+                                color: document.body.classList.contains('dark-theme') ? '#9ca3af' : '#6b7280',
+                                maxRotation: 45,
+                                minRotation: 45
+                            }
                         }
                     }
                 }
@@ -2355,9 +2445,17 @@
                 </select>
             </div>
             
-            <div style="margin-bottom: 20px;">
+            <div style="margin-bottom: 15px;">
                 <label style="display: block; margin-bottom: 5px; font-weight: 600;">Target Harga:</label>
                 <input type="number" id="alertPrice" class="ticker-input" placeholder="Masukkan harga target" step="0.01">
+            </div>
+            
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 600;">📱 WhatsApp Number (Opsional):</label>
+                <input type="tel" id="alertWhatsApp" class="ticker-input" placeholder="628123456789" pattern="[0-9]+">
+                <small style="color: var(--text-secondary); font-size: 0.85rem; display: block; margin-top: 5px;">
+                    Format: 628xxx (tanpa +). Kosongkan jika tidak perlu notifikasi WA.
+                </small>
             </div>
             
             <button onclick="saveAlert()" class="btn-analyze" style="width: 100%;">
