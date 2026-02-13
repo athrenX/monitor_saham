@@ -271,12 +271,13 @@ def analyze_stock_simple(ticker):
         
         print(f"[DEBUG] Downloading data for {ticker}...")  # Vercel log
         
-        # Download data 3 bulan with better error handling - force single ticker
-        df = yf.download(ticker, period="3mo", interval="1d", progress=False, timeout=30, group_by='ticker')
+        # Download data 3 bulan with better error handling
+        df = yf.download(ticker, period="3mo", interval="1d", progress=False, timeout=30)
         
         print(f"[DEBUG] Downloaded {len(df) if df is not None else 0} rows")  # Vercel log
         print(f"[DEBUG] DataFrame columns: {df.columns.tolist() if df is not None and not df.empty else 'None'}")
         print(f"[DEBUG] DataFrame columns type: {type(df.columns)}")
+        print(f"[DEBUG] Is MultiIndex: {isinstance(df.columns, pd.MultiIndex)}")
         
         # Check if download was successful
         if df is None or df.empty or len(df) < 10:
@@ -284,20 +285,32 @@ def analyze_stock_simple(ticker):
                 "error": f"Data untuk ticker '{ticker}' tidak tersedia atau tidak cukup. Coba ticker lain seperti: BBCA.JK, TLKM.JK, GOTO.JK"
             }
         
-        # Ensure we're working with Series, not DataFrame
-        # If multi-level columns exist, flatten them
+        # Handle multi-level columns robustly
         if isinstance(df.columns, pd.MultiIndex):
             print(f"[DEBUG] Multi-level columns detected. Levels: {df.columns.nlevels}")
-            # Extract data for the specific ticker only
-            try:
-                # Try to get the ticker from level 1
-                ticker_name = df.columns.get_level_values(1)[0] if df.columns.nlevels > 1 else df.columns.get_level_values(0)[0]
-                df = df.xs(ticker_name, axis=1, level=1)
-                print(f"[DEBUG] Extracted ticker: {ticker_name}")
-            except Exception as e:
-                print(f"[DEBUG] Failed to extract ticker from multi-level, trying alternative method: {e}")
-                # Alternative: just take level 0 (the standard OHLCV columns)
-                df.columns = df.columns.droplevel(1) if df.columns.nlevels > 1 else df.columns
+            print(f"[DEBUG] Level 0 values: {df.columns.get_level_values(0).unique().tolist()}")
+            if df.columns.nlevels > 1:
+                print(f"[DEBUG] Level 1 values: {df.columns.get_level_values(1).unique().tolist()}")
+            
+            # Simply drop the second level (ticker name) to get standard OHLCV columns
+            df.columns = df.columns.droplevel(1) if df.columns.nlevels > 1 else df.columns.droplevel(0)
+            print(f"[DEBUG] After droplevel, columns: {df.columns.tolist()}")
+        
+        # If columns are still objects, try to extract the right ones
+        if not all(col in df.columns for col in ['Close', 'High', 'Low', 'Open', 'Volume']):
+            print(f"[DEBUG] Standard columns not found. Available columns: {df.columns.tolist()}")
+            # Try to find columns that contain these names
+            col_mapping = {}
+            for req_col in ['Close', 'High', 'Low', 'Open', 'Volume']:
+                for df_col in df.columns:
+                    if req_col.lower() in str(df_col).lower():
+                        col_mapping[df_col] = req_col
+                        break
+            
+            if col_mapping:
+                df = df[list(col_mapping.keys())]
+                df.columns = list(col_mapping.values())
+                print(f"[DEBUG] Mapped columns: {col_mapping}")
         
         print(f"[DEBUG] Final DataFrame columns: {df.columns.tolist()}")
         
