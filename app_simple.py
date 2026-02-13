@@ -286,9 +286,9 @@ def analyze_stock_simple(ticker):
         # Ensure we're working with Series, not DataFrame
         # If multi-level columns exist, flatten them
         if isinstance(df.columns, pd.MultiIndex):
-            # For single ticker, columns are like ('Close', 'BBCA.JK')
-            # We want just 'Close', 'High', 'Low', etc.
-            df.columns = df.columns.droplevel(1) if df.columns.nlevels > 1 else df.columns.get_level_values(0)
+            # Extract data for the specific ticker only
+            ticker_name = df.columns.get_level_values(1)[0]
+            df = df.xs(ticker_name, axis=1, level=1)
         
         # Verify required columns exist
         required_cols = ['Close', 'High', 'Low', 'Open', 'Volume']
@@ -298,10 +298,10 @@ def analyze_stock_simple(ticker):
                 "error": f"Data tidak lengkap untuk '{ticker}'. Kolom yang hilang: {', '.join(missing_cols)}"
             }
         
-        # Get Close price as Series
-        close_series = df['Close'].squeeze() if hasattr(df['Close'], 'squeeze') else df['Close']
-        high_series = df['High'].squeeze() if hasattr(df['High'], 'squeeze') else df['High']
-        low_series = df['Low'].squeeze() if hasattr(df['Low'], 'squeeze') else df['Low']
+        # Force convert to Series to avoid DataFrame assignment issues
+        close_series = pd.Series(df['Close'].values, index=df.index)
+        high_series = pd.Series(df['High'].values, index=df.index)
+        low_series = pd.Series(df['Low'].values, index=df.index)
         
         # Hitung indikator sederhana
         df['MA7'] = calculate_moving_average(close_series, 7)   # Rata-rata 1 minggu
