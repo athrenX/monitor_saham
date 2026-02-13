@@ -80,6 +80,16 @@ const translations = {
         'ai.hold': 'TAHAN',
         'ai.sell': 'JUAL',
         'ai.strong_sell': 'JUAL KUAT',
+        'ai.deepAnalysisTitle': 'AI Deep Analysis',
+        'ai.deepAnalysisSubtitle': 'Wawasan mendalam dan prediksi pasar',
+        'ai.chatTitle': 'StockPro AI',
+        'ai.chatSubtitle': 'Asisten trading cerdas Anda',
+        'ai.chatWelcome': '👋 Halo! Saya StockPro AI, asisten analisis saham Anda.<br><br>Tanyakan apapun tentang:<br>• Analisis teknikal & indikator<br>• Rekomendasi saham<br>• Trend & outlook pasar<br>• Strategi risk management<br>• Strategi entry/exit<br>• Diversifikasi portfolio<br><br>Saya siap membantu dengan analisis profesional! 🚀',
+        'ai.inputPlaceholder': 'Tanya tentang saham, indikator, strategi...',
+        'ai.sendButton': 'Kirim',
+        'ai.analyzing': 'Menganalisis...',
+        'ai.deepAnalysisButton': 'Analisis AI Mendalam',
+        'ai.deepAnalysisLoading': 'Membuat Analisis Mendalam...',
         
         // Signals
         'signal.trend': 'Sinyal Trend',
@@ -266,6 +276,16 @@ const translations = {
         'ai.hold': 'HOLD',
         'ai.sell': 'SELL',
         'ai.strong_sell': 'STRONG SELL',
+        'ai.deepAnalysisTitle': 'AI Deep Analysis',
+        'ai.deepAnalysisSubtitle': 'Advanced insights and market predictions',
+        'ai.chatTitle': 'StockPro AI',
+        'ai.chatSubtitle': 'Your intelligent trading assistant',
+        'ai.chatWelcome': '👋 Hello! I\'m StockPro AI, your stock analysis assistant.<br><br>Ask me anything about:<br>• Technical analysis & indicators<br>• Stock recommendations<br>• Market trends & outlook<br>• Risk management strategies<br>• Entry/exit strategies<br>• Portfolio diversification<br><br>I\'m here to help with professional analysis! 🚀',
+        'ai.inputPlaceholder': 'Ask about stocks, indicators, strategies...',
+        'ai.sendButton': 'Send',
+        'ai.analyzing': 'Analyzing...',
+        'ai.deepAnalysisButton': 'Deep AI Analysis',
+        'ai.deepAnalysisLoading': 'Generating Deep Analysis...',
         
         // Signals
         'signal.trend': 'Trend Signal',

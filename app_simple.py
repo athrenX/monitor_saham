@@ -22,10 +22,12 @@ GEMINI_MODEL = "gemini-2.5-flash"
 # For production, use Redis, PostgreSQL, or Vercel KV
 WATCHLIST_DATA = []
 ALERTS_DATA = []
+CHAT_HISTORY = {}  # {session_id: [{role: 'user/assistant', content: '...', timestamp: '...'}]}
 
 # Try to use file storage if available (local development)
 WATCHLIST_FILE = 'data/watchlist.json'
 ALERTS_FILE = 'data/alerts.json'
+CHAT_HISTORY_FILE = 'data/chat_history.json'
 
 try:
     os.makedirs('data', exist_ok=True)
@@ -37,9 +39,21 @@ try:
     if os.path.exists(ALERTS_FILE):
         with open(ALERTS_FILE, 'r') as f:
             ALERTS_DATA = json.load(f)
+    
+    if os.path.exists(CHAT_HISTORY_FILE):
+        with open(CHAT_HISTORY_FILE, 'r') as f:
+            CHAT_HISTORY = json.load(f)
 except:
     # If file operations fail (serverless), use in-memory storage
     pass
+
+def save_chat_history():
+    """Save chat history to file if possible"""
+    try:
+        with open(CHAT_HISTORY_FILE, 'w') as f:
+            json.dump(CHAT_HISTORY, f)
+    except:
+        pass  # Silently fail on serverless
 
 def save_watchlist():
     """Save watchlist to file if possible"""
@@ -1115,19 +1129,28 @@ _StockPro AI - Notifikasi Real-time_"""
 # === AI CHATBOT & ANALYSIS API ===
 @app.route('/api/ai/chat', methods=['POST'])
 def ai_chat():
-    """AI Chatbot powered by Gemini"""
+    """AI Chatbot with conversation history caching"""
     try:
         data = request.get_json()
         message = data.get('message', '')
         ticker = data.get('ticker', '')
         stock_data = data.get('stockData', {})
+        session_id = data.get('sessionId', 'default')  # Client can pass session ID for multi-user support
         
-        # Build context-aware prompt
+        # Initialize session history if not exists
+        if session_id not in CHAT_HISTORY:
+            CHAT_HISTORY[session_id] = []
+        
+        # Clean old history (keep last 20 messages for context, ~10 exchanges)
+        if len(CHAT_HISTORY[session_id]) > 20:
+            CHAT_HISTORY[session_id] = CHAT_HISTORY[session_id][-20:]
+        
+        # Build context-aware prompt with conversation history
         system_instruction = """Kamu adalah StockPro AI, analis saham profesional bersertifikat CFA & CMT dengan pengalaman 15+ tahun di pasar Indonesia (IDX) dan global.
 
 KEAHLIAN UTAMA:
 - Technical Analysis: Chart patterns, candlestick, Fibonacci, Elliott Wave, Ichimoku
-- Fundamental Analysis: Valuasi, rasio keuangan, analisis sektoral
+- Fundamental Analysis: Valuasi, rasio keuangan, analisis sektoral  
 - Risk Management: Position sizing, stop loss, risk-reward ratio
 - Behavioral Finance: Sentiment analysis, market psychology
 - Pasar Indonesia: Familiar dengan semua emiten IDX, regulasi OJK, jam trading BEI
@@ -1138,27 +1161,39 @@ GAYA KOMUNIKASI:
 - Berikan rekomendasi yang actionable (entry, exit, stop loss)
 - Gunakan emoji untuk visual hierarchy
 - Bahasa Indonesia yang natural dan engaging
-- Selalu sertakan disclaimer risiko"""
+- Selalu sertakan disclaimer risiko
+- Jika user tanya dalam bahasa Inggris, jawab dalam bahasa Inggris
+- Ingat konteks percakapan sebelumnya untuk memberikan jawaban yang relevan"""
+        
+        # Build conversation context for Gemini
+        conversation_context = ""
+        if len(CHAT_HISTORY[session_id]) > 0:
+            conversation_context = "\n\nKONTEKS PERCAKAPAN SEBELUMNYA:\n"
+            for msg in CHAT_HISTORY[session_id][-6:]:  # Last 3 exchanges
+                role = "User" if msg['role'] == 'user' else "AI"
+                conversation_context += f"{role}: {msg['content']}\n"
         
         if ticker and stock_data:
-            user_prompt = f"""DATA SAHAM SAAT INI - {ticker}:
-Harga: Rp {stock_data.get('price', 'N/A')}
-Perubahan: {stock_data.get('change_percent', 0)}%
-Volume: {stock_data.get('volume', 'N/A')}
+            user_prompt = f"""{conversation_context}
+
+DATA SAHAM SAAT INI - {ticker}:
+Harga: Rp {stock_data.get('price', 'N/A'):,.0f}
+Perubahan: {stock_data.get('change_percent', 0):+.2f}%
+Volume: {stock_data.get('volume', 'N/A'):,}
 Trend: {stock_data.get('trend', 'N/A')}
 RSI: {stock_data.get('rsi', 'N/A')}
 MACD: {stock_data.get('macd', 'N/A')}
-Support: {stock_data.get('support', 'N/A')}
-Resistance: {stock_data.get('resistance', 'N/A')}
+Support: Rp {stock_data.get('support', 0):,.0f}
+Resistance: Rp {stock_data.get('resistance', 0):,.0f}
 AI Score: {stock_data.get('ai_score', 'N/A')}/100
 
-Pertanyaan: {message}
+Pertanyaan User: {message}
 
-Jawab 2-4 paragraf padat, actionable, dan data-driven."""
+Jawab 2-4 paragraf padat, actionable, dan data-driven. Gunakan format yang mudah dibaca dengan poin-poin penting."""
         else:
-            user_prompt = f"{message}\n\nJawab 2-4 paragraf, informatif dan educational."
+            user_prompt = f"{conversation_context}\n\nPertanyaan User: {message}\n\nJawab 2-4 paragraf, informatif dan educational."
         
-        # Call Gemini AI with new SDK
+        # Call Gemini AI
         response = client.models.generate_content(
             model=GEMINI_MODEL,
             contents=user_prompt,
@@ -1169,10 +1204,28 @@ Jawab 2-4 paragraf padat, actionable, dan data-driven."""
             )
         )
         
+        ai_response = response.text
+        
+        # Save to history
+        timestamp = datetime.now().isoformat()
+        CHAT_HISTORY[session_id].append({
+            'role': 'user',
+            'content': message,
+            'timestamp': timestamp,
+            'ticker': ticker
+        })
+        CHAT_HISTORY[session_id].append({
+            'role': 'assistant',
+            'content': ai_response,
+            'timestamp': timestamp
+        })
+        save_chat_history()
+        
         return jsonify({
             'success': True,
-            'response': response.text,
-            'timestamp': datetime.now().isoformat()
+            'response': ai_response,
+            'timestamp': timestamp,
+            'historyCount': len(CHAT_HISTORY[session_id])
         })
         
     except Exception as e:
@@ -1185,79 +1238,84 @@ Jawab 2-4 paragraf padat, actionable, dan data-driven."""
 
 @app.route('/api/ai/analysis', methods=['POST'])
 def ai_deep_analysis():
-    """AI Deep Analysis powered by Gemini"""
+    """Enhanced AI Deep Analysis with comprehensive market insights"""
     try:
         data = request.get_json()
         ticker = data.get('ticker', '')
         stock_data = data.get('stockData', {})
+        language = data.get('language', 'id')  # 'id' or 'en'
         
         if not ticker or not stock_data:
             return jsonify({'success': False, 'error': 'Data tidak lengkap'}), 400
         
-        system_instruction = """Kamu adalah Senior Equity Analyst bersertifikat CFA Level III dan CMT (Chartered Market Technician) dengan spesialisasi pasar saham Indonesia.
-
-Pengalaman: 15+ tahun di buy-side (asset management) dan sell-side (sekuritas).
-Keahlian: Valuation modeling (DCF, Relative), Technical Analysis lanjutan, Macro analysis, Sector rotation strategy.
-
-Berikan analisis setara laporan riset profesional dari sekuritas ternama. Gunakan data kuantitatif, reasoning yang kuat, dan rekomendasi yang actionable."""
+        if language == 'en':
+            system_instruction = """You are a Senior Equity Analyst certified CFA Level III and CMT (Chartered Market Technician) specializing in Indonesian and global stock markets. Provide analysis equivalent to professional research reports. Use quantitative data and actionable recommendations."""
+            
+            error_msg = 'Sorry, an error occurred with AI analysis. Please try again.'
+        else:
+            system_instruction = """Kamu adalah Senior Equity Analyst bersertifikat CFA Level III dan CMT dengan spesialisasi pasar saham Indonesia. Berikan analisis setara laporan riset profesional."""
+            
+            error_msg = 'Maaf, terjadi kesalahan pada AI analysis. Silakan coba lagi.'
         
-        prompt = f"""Buatkan LAPORAN ANALISIS MENDALAM untuk saham {ticker}.
+        prompt = f"""Create COMPREHENSIVE DEEP ANALYSIS for {ticker}.
 
-DATA REAL-TIME:
-- Harga: Rp {stock_data.get('price', 0)}
-- Perubahan: {stock_data.get('change_percent', 0)}%
-- Volume: {stock_data.get('volume', 0)}
+REAL-TIME DATA:
+- Price: Rp {stock_data.get('price', 0):,.0f}
+- Change: {stock_data.get('change_percent', 0):+.2f}%
+- Volume: {stock_data.get('volume', 0):,}
 - RSI: {stock_data.get('rsi', 'N/A')}
 - MACD: {stock_data.get('macd', 'N/A')}
 - Trend: {stock_data.get('trend', 'N/A')}
 - AI Score: {stock_data.get('ai_score', 'N/A')}/100
-- Support: {stock_data.get('support', 'N/A')}
-- Resistance: {stock_data.get('resistance', 'N/A')}
+- Support: Rp {stock_data.get('support', 0):,.0f}
+- Resistance: Rp {stock_data.get('resistance', 0):,.0f}
 - Stochastic: {stock_data.get('stochastic', 'N/A')}
 - ATR: {stock_data.get('atr', 'N/A')}
-- BB Upper: {stock_data.get('bb_upper', 'N/A')}
-- BB Lower: {stock_data.get('bb_lower', 'N/A')}
+- BB Upper: Rp {stock_data.get('bb_upper', 0):,.0f}
+- BB Lower: Rp {stock_data.get('bb_lower', 0):,.0f}
 
-FORMAT LAPORAN:
+REPORT FORMAT:
 
-📊 **RINGKASAN EKSEKUTIF**
-[3-4 kalimat overview + rating STRONG BUY/BUY/HOLD/SELL/STRONG SELL]
+📊 **EXECUTIVE SUMMARY**
+[3-4 sentences + rating: STRONG BUY/BUY/HOLD/SELL/STRONG SELL]
 
-🔍 **ANALISIS TEKNIKAL MENDALAM**
-• Trend Analysis (EMA crossover, price action)
-• Momentum (RSI interpretation, MACD signal)
-• Volatility (Bollinger Bands, ATR)
-• Support & Resistance levels
-• Chart Pattern jika teridentifikasi
+🔍 **IN-DEPTH TECHNICAL ANALYSIS**
+• Trend Analysis (EMA, price action, momentum)
+• Momentum (RSI, MACD, divergences)
+• Volatility (Bollinger Bands, ATR, risk)
+• Support & Resistance (key levels, Fibonacci)
+• Chart Patterns & Volume Profile
 
 📈 **TREND & OUTLOOK**
-• Jangka pendek (1-2 minggu)
-• Jangka menengah (1-3 bulan)
-• Key catalyst yang perlu diperhatikan
+• Short-term (1-2 weeks)
+• Medium-term (1-3 months)
+• Long-term (6-12 months)
+• Market Catalysts & Sector Performance
 
 ⚠️ **RISK ASSESSMENT**
-• Risiko utama (berikan 3 risks)
-• Probability dan impact masing-masing
-• Mitigasi yang disarankan
+• Technical, Market, Fundamental Risks
+• Probability + Impact + Mitigation for each
 
-💡 **REKOMENDASI & TARGET**
-• Rating: [STRONG BUY/BUY/HOLD/SELL/STRONG SELL]
-• Target Price: Rp [harga]
-• Stop Loss: Rp [harga]
-• Risk-Reward Ratio: [rasio]
+💡 **RECOMMENDATIONS**
+• Rating with conviction (1-5)
+• Price Target (upside %)
+• Stop Loss (risk %)
+• Risk-Reward Ratio
+• Confidence Level
 
-🎯 **STRATEGI TRADING**
-• Entry Zone: Rp [range]
-• Take Profit 1: Rp [harga]
-• Take Profit 2: Rp [harga]
-• Stop Loss: Rp [harga]
-• Position Sizing: [% dari portfolio]
-• Time Horizon: [jangka waktu]
+🎯 **TRADING STRATEGY**
+• Entry Zone
+• TP1, TP2, TP3 with position sizing
+• Stop Loss placement
+• Time Horizon & Re-entry plan
+
+💼 **PORTFOLIO IMPLICATIONS**
+• Sector allocation & correlations
 
 ⚖️ **DISCLAIMER**
-Analisis ini hanya referensi edukasi, bukan saran investasi. DYOR.
+Educational only, not investment advice. DYOR.
 
-Gunakan emoji, **bold**, dan bullet points. Total 500-700 kata."""
+Use emoji, **bold**, bullets. 700-900 words. Be specific with numbers."""
         
         response = client.models.generate_content(
             model=GEMINI_MODEL,
@@ -1280,7 +1338,7 @@ Gunakan emoji, **bold**, dan bullet points. Total 500-700 kata."""
         print(f"AI Analysis error: {str(e)}")
         return jsonify({
             'success': False,
-            'error': 'Maaf, terjadi kesalahan pada AI analysis. Silakan coba lagi.',
+            'error': error_msg,
             'details': str(e)
         }), 500
 
