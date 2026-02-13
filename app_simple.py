@@ -7,16 +7,16 @@ import warnings
 import json
 import os
 import requests
-import google.generativeai as genai
+from google import genai
 warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-in-production')
 
-# Configure Gemini AI
+# Configure Gemini AI (new google-genai SDK)
 GEMINI_API_KEY = "AIzaSyDOymWnnOqy4tE5GgIseYU1kNu3NVtfbCE"
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-pro')
+client = genai.Client(api_key=GEMINI_API_KEY)
+GEMINI_MODEL = "gemini-2.5-flash"
 
 # In-memory storage for serverless (Vercel doesn't have persistent filesystem)
 # For production, use Redis, PostgreSQL, or Vercel KV
@@ -114,9 +114,9 @@ def calculate_advanced_signals(df, close_series, high_series, low_series):
     ema_21 = close_series.ewm(span=21).mean()
     ema_50 = close_series.ewm(span=50).mean()
     
-    ema9_val = float(ema_9.iloc[-1])
-    ema21_val = float(ema_21.iloc[-1])
-    ema50_val = float(ema_50.iloc[-1])
+    ema9_val = to_float(ema_9.iloc[-1])
+    ema21_val = to_float(ema_21.iloc[-1])
+    ema50_val = to_float(ema_50.iloc[-1])
     
     if ema9_val > ema21_val > ema50_val:
         signals['trend_strength'] = 100  # Strong uptrend
@@ -127,7 +127,7 @@ def calculate_advanced_signals(df, close_series, high_series, low_series):
     
     # Momentum Score (RSI + MACD)
     rsi_series = calculate_rsi(close_series)
-    rsi = float(rsi_series.iloc[-1]) if not rsi_series.empty else 50.0
+    rsi = to_float(rsi_series.iloc[-1]) if not rsi_series.empty else 50.0
     if rsi < 30:
         signals['momentum_score'] = 90  # Oversold - buy signal
     elif rsi > 70:
@@ -138,7 +138,7 @@ def calculate_advanced_signals(df, close_series, high_series, low_series):
     # Volume Score
     current_vol = df['Volume'].iloc[-1]
     avg_vol = df['Volume'].rolling(20).mean().iloc[-1]
-    vol_ratio = float(current_vol / avg_vol) if avg_vol > 0 else 1.0
+    vol_ratio = to_float(current_vol / avg_vol) if to_float(avg_vol) > 0 else 1.0
     if vol_ratio > 1.5:
         signals['volume_score'] = 80  # High volume
     elif vol_ratio > 1.0:
@@ -153,8 +153,8 @@ def calculate_advanced_signals(df, close_series, high_series, low_series):
     ranges = pd.concat([high_low, high_close, low_close], axis=1)
     true_range = np.max(ranges, axis=1)
     atr_series = true_range.rolling(14).mean()
-    atr = float(atr_series.iloc[-1]) if not atr_series.empty else 0.0
-    current_price = float(close_series.iloc[-1])
+    atr = to_float(atr_series.iloc[-1]) if not atr_series.empty else 0.0
+    current_price = to_float(close_series.iloc[-1])
     atr_pct = (atr / current_price) * 100 if current_price > 0 else 0.0
     
     if atr_pct < 2:
@@ -182,9 +182,9 @@ def predict_next_move(df, close_series, high_series, low_series):
     volatility = returns.std()
     
     # Calculate support/resistance
-    support = float(low_series.tail(30).min())
-    resistance = float(high_series.tail(30).max())
-    current = float(close_series.iloc[-1])
+    support = to_float(low_series.tail(30).min())
+    resistance = to_float(high_series.tail(30).max())
+    current = to_float(close_series.iloc[-1])
     
     # Position in range
     range_position = (current - support) / (resistance - support) if resistance > support else 0.5
@@ -265,9 +265,22 @@ def to_float(val):
         val = val.values[0] if len(val.values) > 0 else 0.0
     # Convert to float
     try:
-        return float(val)
+        result = float(val)
+        if pd.isna(result):
+            return 0.0
+        return result
     except (TypeError, ValueError):
         return 0.0
+
+def safe_int(val, default=0):
+    """Convert value to int safely, handling NaN"""
+    try:
+        f = float(val)
+        if pd.isna(f):
+            return default
+        return int(f)
+    except (TypeError, ValueError):
+        return default
 
 def analyze_stock_simple(ticker):
     """Analisis saham versi sederhana untuk orang awam"""
@@ -284,8 +297,8 @@ def analyze_stock_simple(ticker):
         for attempt in range(max_retries):
             try:
                 print(f"[DEBUG] Attempt {attempt + 1}/{max_retries}")
-                # Download data 3 bulan with better error handling
-                df = yf.download(ticker, period="3mo", interval="1d", progress=False, timeout=30)
+                # Download data 3 bulan - single ticker only
+                df = yf.download(ticker, period="3mo", interval="1d", progress=False)
                 
                 if df is not None and not df.empty and len(df) >= 10:
                     print(f"[DEBUG] Download successful on attempt {attempt + 1}")
@@ -294,17 +307,12 @@ def analyze_stock_simple(ticker):
                     print(f"[DEBUG] Attempt {attempt + 1} returned insufficient data")
                     if attempt < max_retries - 1:
                         import time
-                        time.sleep(1)  # Wait 1 second before retry
+                        time.sleep(1)
             except Exception as e:
                 print(f"[DEBUG] Attempt {attempt + 1} failed: {e}")
                 if attempt < max_retries - 1:
                     import time
                     time.sleep(1)
-        
-        print(f"[DEBUG] Downloaded {len(df) if df is not None else 0} rows")  # Vercel log
-        print(f"[DEBUG] DataFrame columns: {df.columns.tolist() if df is not None and not df.empty else 'None'}")
-        print(f"[DEBUG] DataFrame columns type: {type(df.columns)}")
-        print(f"[DEBUG] Is MultiIndex: {isinstance(df.columns, pd.MultiIndex)}")
         
         # Check if download was successful
         if df is None or df.empty or len(df) < 10:
@@ -312,34 +320,22 @@ def analyze_stock_simple(ticker):
                 "error": f"Data untuk ticker '{ticker}' tidak tersedia atau tidak cukup. Coba ticker lain seperti: BBCA.JK, TLKM.JK, GOTO.JK"
             }
         
-        # Handle multi-level columns robustly
+        # Handle multi-level columns (yfinance >= 0.2.31 always returns MultiIndex)
         if isinstance(df.columns, pd.MultiIndex):
-            print(f"[DEBUG] Multi-level columns detected. Levels: {df.columns.nlevels}")
-            print(f"[DEBUG] Level 0 values: {df.columns.get_level_values(0).unique().tolist()}")
-            if df.columns.nlevels > 1:
-                print(f"[DEBUG] Level 1 values: {df.columns.get_level_values(1).unique().tolist()}")
-            
-            # Simply drop the second level (ticker name) to get standard OHLCV columns
-            df.columns = df.columns.droplevel(1) if df.columns.nlevels > 1 else df.columns.droplevel(0)
-            print(f"[DEBUG] After droplevel, columns: {df.columns.tolist()}")
+            # Use xs to extract single ticker, or droplevel if only one ticker
+            tickers_in_data = df.columns.get_level_values(1).unique().tolist()
+            if len(tickers_in_data) == 1:
+                df.columns = df.columns.droplevel(1)
+            else:
+                # Multiple tickers in data (shouldn't happen but handle gracefully)
+                # Pick columns that match our ticker
+                try:
+                    df = df.xs(ticker, level=1, axis=1)
+                except KeyError:
+                    df.columns = df.columns.droplevel(1)
         
-        # If columns are still objects, try to extract the right ones
-        if not all(col in df.columns for col in ['Close', 'High', 'Low', 'Open', 'Volume']):
-            print(f"[DEBUG] Standard columns not found. Available columns: {df.columns.tolist()}")
-            # Try to find columns that contain these names
-            col_mapping = {}
-            for req_col in ['Close', 'High', 'Low', 'Open', 'Volume']:
-                for df_col in df.columns:
-                    if req_col.lower() in str(df_col).lower():
-                        col_mapping[df_col] = req_col
-                        break
-            
-            if col_mapping:
-                df = df[list(col_mapping.keys())]
-                df.columns = list(col_mapping.values())
-                print(f"[DEBUG] Mapped columns: {col_mapping}")
-        
-        print(f"[DEBUG] Final DataFrame columns: {df.columns.tolist()}")
+        # Ensure no duplicate columns
+        df = df.loc[:, ~df.columns.duplicated()]
         
         # Verify required columns exist
         required_cols = ['Close', 'High', 'Low', 'Open', 'Volume']
@@ -349,14 +345,18 @@ def analyze_stock_simple(ticker):
                 "error": f"Data tidak lengkap untuk '{ticker}'. Kolom yang hilang: {', '.join(missing_cols)}"
             }
         
-        # Force convert to Series to avoid DataFrame assignment issues
-        # Ensure we extract only the values, not DataFrame
-        close_series = pd.Series(df['Close'].values.flatten() if hasattr(df['Close'].values, 'flatten') else df['Close'].values, index=df.index)
-        high_series = pd.Series(df['High'].values.flatten() if hasattr(df['High'].values, 'flatten') else df['High'].values, index=df.index)
-        low_series = pd.Series(df['Low'].values.flatten() if hasattr(df['Low'].values, 'flatten') else df['Low'].values, index=df.index)
+        # Convert to clean Series
+        close_series = df['Close'].squeeze()
+        high_series = df['High'].squeeze()
+        low_series = df['Low'].squeeze()
         
-        print(f"[DEBUG] close_series shape: {close_series.shape}, type: {type(close_series)}")
-        print(f"[DEBUG] close_series first 3 values: {close_series.head(3).tolist()}")
+        # Ensure they are Series, not DataFrames
+        if isinstance(close_series, pd.DataFrame):
+            close_series = close_series.iloc[:, 0]
+        if isinstance(high_series, pd.DataFrame):
+            high_series = high_series.iloc[:, 0]
+        if isinstance(low_series, pd.DataFrame):
+            low_series = low_series.iloc[:, 0]
         
         # Hitung indikator sederhana
         df['MA7'] = calculate_moving_average(close_series, 7)   # Rata-rata 1 minggu
@@ -590,8 +590,8 @@ def analyze_stock_simple(ticker):
         # Chart data
         chart_data = df.tail(60)
         chart_dates = [d.strftime('%d %b') for d in chart_data.index]
-        chart_prices = chart_data['Close'].values.tolist()
-        chart_volumes = chart_data['Volume'].values.tolist()
+        chart_prices = chart_data['Close'].fillna(0).values.tolist()
+        chart_volumes = chart_data['Volume'].fillna(0).values.tolist()
         chart_ma7 = chart_data['MA7'].fillna(0).values.tolist()
         chart_ma30 = chart_data['MA30'].fillna(0).values.tolist()
         
@@ -615,8 +615,8 @@ def analyze_stock_simple(ticker):
                 "perubahan_persen": perubahan_persen,
                 "tertinggi_30d": harga_tertinggi_30d,
                 "terendah_30d": harga_terendah_30d,
-                "volume": int(volume_sekarang),
-                "volume_avg": int(volume_rata),
+                "volume": safe_int(volume_sekarang),
+                "volume_avg": safe_int(volume_rata),
                 "volume_status": volume_status,
                 "volume_desc": volume_desc,
                 "volume_emoji": volume_emoji
@@ -711,59 +711,60 @@ def api_idx_monitor():
     results = []
     for ticker in tickers:
         try:
-            # Get real-time data using yfinance with retry
+            hist = None
             for attempt in range(3):
                 try:
-                    # Download data for single ticker only
-                    hist = yf.download(ticker, period='5d', interval='1d', progress=False, show_errors=False)
-                    
-                    if not hist.empty and len(hist) >= 2:
-                        # Handle potential multi-level columns
-                        if isinstance(hist.columns, pd.MultiIndex):
-                            hist.columns = hist.columns.get_level_values(0)
-                        
-                        # Get current price (last close)
-                        current_price = float(hist['Close'].iloc[-1])
-                        prev_price = float(hist['Close'].iloc[-2])
-                        
-                        # Calculate change
-                        change = current_price - prev_price
-                        change_percent = (change / prev_price) * 100
-                        
-                        # Get volume
-                        volume = float(hist['Volume'].iloc[-1])
-                        
-                        results.append({
-                            'ticker': ticker,
-                            'price': round(current_price, 2),
-                            'change': round(change, 2),
-                            'change_percent': round(change_percent, 2),
-                            'volume': int(volume),
-                            'high': round(float(hist['High'].iloc[-1]), 2),
-                            'low': round(float(hist['Low'].iloc[-1]), 2),
-                            'error': False
-                        })
+                    hist = yf.download(ticker, period='5d', interval='1d', progress=False)
+                    if hist is not None and not hist.empty and len(hist) >= 2:
                         break
                     else:
                         if attempt < 2:
-                            continue
-                        results.append({
-                            'ticker': ticker,
-                            'error': True,
-                            'message': 'Data tidak tersedia'
-                        })
+                            import time
+                            time.sleep(0.5)
                 except Exception as e:
                     if attempt < 2:
-                        continue
-                    raise e
+                        import time
+                        time.sleep(0.5)
+                    else:
+                        raise e
+            
+            if hist is None or hist.empty or len(hist) < 2:
+                results.append({'ticker': ticker, 'error': True, 'message': 'Data tidak tersedia'})
+                continue
+            
+            # Handle MultiIndex columns
+            if isinstance(hist.columns, pd.MultiIndex):
+                tickers_in = hist.columns.get_level_values(1).unique().tolist()
+                if len(tickers_in) == 1:
+                    hist.columns = hist.columns.droplevel(1)
+                else:
+                    try:
+                        hist = hist.xs(ticker, level=1, axis=1)
+                    except KeyError:
+                        hist.columns = hist.columns.droplevel(1)
+            
+            hist = hist.loc[:, ~hist.columns.duplicated()]
+            
+            current_price = to_float(hist['Close'].iloc[-1])
+            prev_price = to_float(hist['Close'].iloc[-2])
+            change = current_price - prev_price
+            change_percent = (change / prev_price) * 100 if prev_price > 0 else 0
+            volume = to_float(hist['Volume'].iloc[-1])
+            
+            results.append({
+                'ticker': ticker,
+                'price': round(current_price, 2),
+                'change': round(change, 2),
+                'change_percent': round(change_percent, 2),
+                'volume': safe_int(volume),
+                'high': round(to_float(hist['High'].iloc[-1]), 2),
+                'low': round(to_float(hist['Low'].iloc[-1]), 2),
+                'error': False
+            })
                     
         except Exception as e:
             print(f"Error fetching {ticker}: {str(e)}")
-            results.append({
-                'ticker': ticker,
-                'error': True,
-                'message': 'Error fetching data'
-            })
+            results.append({'ticker': ticker, 'error': True, 'message': str(e)[:50]})
     
     return jsonify({'data': results})
 
@@ -900,10 +901,19 @@ def get_top_movers():
         try:
             df = yf.download(ticker, period="5d", interval="1d", progress=False)
             if not df.empty and len(df) >= 2:
-                close_series = df['Close'].squeeze() if hasattr(df['Close'], 'squeeze') else df['Close']
-                current = float(close_series.iloc[-1])
-                previous = float(close_series.iloc[-2])
-                change_pct = ((current - previous) / previous) * 100
+                # Handle MultiIndex
+                if isinstance(df.columns, pd.MultiIndex):
+                    tickers_in = df.columns.get_level_values(1).unique()
+                    if len(tickers_in) == 1:
+                        df.columns = df.columns.droplevel(1)
+                    else:
+                        try: df = df.xs(ticker, level=1, axis=1)
+                        except: df.columns = df.columns.droplevel(1)
+                df = df.loc[:, ~df.columns.duplicated()]
+                
+                current = to_float(df['Close'].iloc[-1])
+                previous = to_float(df['Close'].iloc[-2])
+                change_pct = ((current - previous) / previous) * 100 if previous > 0 else 0
                 
                 movers.append({
                     'ticker': ticker,
@@ -938,16 +948,26 @@ def get_candlestick():
         if df.empty:
             return jsonify({'error': 'No data available'})
         
+        # Handle MultiIndex
+        if isinstance(df.columns, pd.MultiIndex):
+            tickers_in = df.columns.get_level_values(1).unique()
+            if len(tickers_in) == 1:
+                df.columns = df.columns.droplevel(1)
+            else:
+                try: df = df.xs(ticker, level=1, axis=1)
+                except: df.columns = df.columns.droplevel(1)
+        df = df.loc[:, ~df.columns.duplicated()]
+        
         # Prepare candlestick data
         candles = []
         for idx, row in df.iterrows():
             candles.append({
                 'date': idx.strftime('%Y-%m-%d'),
-                'open': float(row['Open']),
-                'high': float(row['High']),
-                'low': float(row['Low']),
-                'close': float(row['Close']),
-                'volume': int(row['Volume'])
+                'open': to_float(row['Open']),
+                'high': to_float(row['High']),
+                'low': to_float(row['Low']),
+                'close': to_float(row['Close']),
+                'volume': safe_int(row['Volume'])
             })
         
         return jsonify({'candles': candles})
@@ -977,9 +997,9 @@ def get_watchlist_prices():
                     # Fallback: use latest close from history
                     hist = stock.history(period='1d')
                     if not hist.empty:
-                        current_price = float(hist['Close'].iloc[-1])
+                        current_price = to_float(hist['Close'].iloc[-1])
                         if len(hist) > 1:
-                            prev_close = float(hist['Close'].iloc[-2])
+                            prev_close = to_float(hist['Close'].iloc[-2])
                         else:
                             prev_close = current_price
                         change = current_price - prev_close
@@ -1095,7 +1115,7 @@ _StockPro AI - Notifikasi Real-time_"""
 # === AI CHATBOT & ANALYSIS API ===
 @app.route('/api/ai/chat', methods=['POST'])
 def ai_chat():
-    """AI Chatbot powered by Gemini 1.5 Pro"""
+    """AI Chatbot powered by Gemini"""
     try:
         data = request.get_json()
         message = data.get('message', '')
@@ -1103,49 +1123,51 @@ def ai_chat():
         stock_data = data.get('stockData', {})
         
         # Build context-aware prompt
-        if ticker and stock_data:
-            context = f"""
-Kamu adalah StockPro AI, asisten analisis saham profesional yang ahli dalam pasar saham Indonesia dan global.
+        system_instruction = """Kamu adalah StockPro AI, analis saham profesional bersertifikat CFA & CMT dengan pengalaman 15+ tahun di pasar Indonesia (IDX) dan global.
 
-DATA SAHAM SAAT INI:
-Ticker: {ticker}
+KEAHLIAN UTAMA:
+- Technical Analysis: Chart patterns, candlestick, Fibonacci, Elliott Wave, Ichimoku
+- Fundamental Analysis: Valuasi, rasio keuangan, analisis sektoral
+- Risk Management: Position sizing, stop loss, risk-reward ratio
+- Behavioral Finance: Sentiment analysis, market psychology
+- Pasar Indonesia: Familiar dengan semua emiten IDX, regulasi OJK, jam trading BEI
+
+GAYA KOMUNIKASI:
+- Profesional namun ramah dan mudah dipahami
+- Gunakan data kuantitatif untuk mendukung argumen
+- Berikan rekomendasi yang actionable (entry, exit, stop loss)
+- Gunakan emoji untuk visual hierarchy
+- Bahasa Indonesia yang natural dan engaging
+- Selalu sertakan disclaimer risiko"""
+        
+        if ticker and stock_data:
+            user_prompt = f"""DATA SAHAM SAAT INI - {ticker}:
 Harga: Rp {stock_data.get('price', 'N/A')}
 Perubahan: {stock_data.get('change_percent', 0)}%
 Volume: {stock_data.get('volume', 'N/A')}
+Trend: {stock_data.get('trend', 'N/A')}
+RSI: {stock_data.get('rsi', 'N/A')}
+MACD: {stock_data.get('macd', 'N/A')}
+Support: {stock_data.get('support', 'N/A')}
+Resistance: {stock_data.get('resistance', 'N/A')}
+AI Score: {stock_data.get('ai_score', 'N/A')}/100
 
-INDIKATOR TEKNIKAL:
-{json.dumps(stock_data.get('indicators', {}), indent=2)}
+Pertanyaan: {message}
 
-User bertanya: {message}
-
-Berikan jawaban yang:
-1. Professional tapi mudah dipahami
-2. Berbasis data dan analisis teknikal
-3. Termasuk insight mendalam tentang kondisi pasar
-4. Berikan rekomendasi aksi jika relevan (BUY/HOLD/SELL)
-5. Gunakan emoji untuk visual appeal
-6. Bahasa Indonesia yang natural
-
-Jawab dalam 3-5 paragraf yang padat informasi.
-"""
+Jawab 2-4 paragraf padat, actionable, dan data-driven."""
         else:
-            context = f"""
-Kamu adalah StockPro AI, asisten analisis saham profesional yang ahli dalam pasar saham Indonesia dan global.
-
-User bertanya: {message}
-
-Berikan jawaban yang:
-1. Professional tapi mudah dipahami
-2. Educational dan informatif
-3. Gunakan contoh konkret
-4. Gunakan emoji untuk visual appeal
-5. Bahasa Indonesia yang natural
-
-Jawab dalam 2-4 paragraf yang informatif.
-"""
+            user_prompt = f"{message}\n\nJawab 2-4 paragraf, informatif dan educational."
         
-        # Call Gemini AI
-        response = model.generate_content(context)
+        # Call Gemini AI with new SDK
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=user_prompt,
+            config=genai.types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=0.7,
+                max_output_tokens=1024,
+            )
+        )
         
         return jsonify({
             'success': True,
@@ -1163,7 +1185,7 @@ Jawab dalam 2-4 paragraf yang informatif.
 
 @app.route('/api/ai/analysis', methods=['POST'])
 def ai_deep_analysis():
-    """AI Deep Analysis powered by Gemini 1.5 Pro"""
+    """AI Deep Analysis powered by Gemini"""
     try:
         data = request.get_json()
         ticker = data.get('ticker', '')
@@ -1172,65 +1194,80 @@ def ai_deep_analysis():
         if not ticker or not stock_data:
             return jsonify({'success': False, 'error': 'Data tidak lengkap'}), 400
         
-        # Build comprehensive analysis prompt
-        prompt = f"""
-Sebagai AI analyst profesional, buatkan analisis mendalam untuk saham {ticker}.
+        system_instruction = """Kamu adalah Senior Equity Analyst bersertifikat CFA Level III dan CMT (Chartered Market Technician) dengan spesialisasi pasar saham Indonesia.
 
-DATA FUNDAMENTAL:
-- Ticker: {ticker}
-- Harga Sekarang: Rp {stock_data.get('price', 0):,.2f}
-- Perubahan 24h: {stock_data.get('change_percent', 0):.2f}%
-- Volume: {stock_data.get('volume', 0):,}
-- Market Cap: {stock_data.get('market_cap', 'N/A')}
-- High 52W: {stock_data.get('high_52w', 'N/A')}
-- Low 52W: {stock_data.get('low_52w', 'N/A')}
+Pengalaman: 15+ tahun di buy-side (asset management) dan sell-side (sekuritas).
+Keahlian: Valuation modeling (DCF, Relative), Technical Analysis lanjutan, Macro analysis, Sector rotation strategy.
 
-DATA TEKNIKAL:
-RSI: {stock_data.get('rsi', 'N/A')}
-MACD: {stock_data.get('macd', 'N/A')}
-Moving Average 20: {stock_data.get('ma20', 'N/A')}
-Moving Average 50: {stock_data.get('ma50', 'N/A')}
-Bollinger Bands: {stock_data.get('bollinger', 'N/A')}
+Berikan analisis setara laporan riset profesional dari sekuritas ternama. Gunakan data kuantitatif, reasoning yang kuat, dan rekomendasi yang actionable."""
+        
+        prompt = f"""Buatkan LAPORAN ANALISIS MENDALAM untuk saham {ticker}.
 
-SENTIMENT PASAR:
-Trend: {stock_data.get('trend', 'N/A')}
-Momentum: {stock_data.get('momentum', 'N/A')}
-Volatility: {stock_data.get('volatility', 'N/A')}
+DATA REAL-TIME:
+- Harga: Rp {stock_data.get('price', 0)}
+- Perubahan: {stock_data.get('change_percent', 0)}%
+- Volume: {stock_data.get('volume', 0)}
+- RSI: {stock_data.get('rsi', 'N/A')}
+- MACD: {stock_data.get('macd', 'N/A')}
+- Trend: {stock_data.get('trend', 'N/A')}
+- AI Score: {stock_data.get('ai_score', 'N/A')}/100
+- Support: {stock_data.get('support', 'N/A')}
+- Resistance: {stock_data.get('resistance', 'N/A')}
+- Stochastic: {stock_data.get('stochastic', 'N/A')}
+- ATR: {stock_data.get('atr', 'N/A')}
+- BB Upper: {stock_data.get('bb_upper', 'N/A')}
+- BB Lower: {stock_data.get('bb_lower', 'N/A')}
 
-Buatkan analisis komprehensif dengan struktur:
+FORMAT LAPORAN:
 
 📊 **RINGKASAN EKSEKUTIF**
-[2-3 kalimat overview kondisi saham]
+[3-4 kalimat overview + rating STRONG BUY/BUY/HOLD/SELL/STRONG SELL]
 
-🔍 **ANALISIS TEKNIKAL**
-[Analisis mendalam indikator teknikal, support/resistance, pattern]
+🔍 **ANALISIS TEKNIKAL MENDALAM**
+• Trend Analysis (EMA crossover, price action)
+• Momentum (RSI interpretation, MACD signal)
+• Volatility (Bollinger Bands, ATR)
+• Support & Resistance levels
+• Chart Pattern jika teridentifikasi
 
-📈 **TREND & MOMENTUM**
-[Analisis trend jangka pendek, menengah, panjang]
+📈 **TREND & OUTLOOK**
+• Jangka pendek (1-2 minggu)
+• Jangka menengah (1-3 bulan)
+• Key catalyst yang perlu diperhatikan
 
 ⚠️ **RISK ASSESSMENT**
-[Identifikasi risiko utama dan mitigasi]
+• Risiko utama (berikan 3 risks)
+• Probability dan impact masing-masing
+• Mitigasi yang disarankan
 
-💡 **REKOMENDASI**
-[Action: STRONG BUY / BUY / HOLD / SELL / STRONG SELL]
-[Target Price jangka pendek & menengah]
-[Stop Loss recommendation]
+💡 **REKOMENDASI & TARGET**
+• Rating: [STRONG BUY/BUY/HOLD/SELL/STRONG SELL]
+• Target Price: Rp [harga]
+• Stop Loss: Rp [harga]
+• Risk-Reward Ratio: [rasio]
 
 🎯 **STRATEGI TRADING**
-[Entry point, exit strategy, position sizing]
+• Entry Zone: Rp [range]
+• Take Profit 1: Rp [harga]
+• Take Profit 2: Rp [harga]
+• Stop Loss: Rp [harga]
+• Position Sizing: [% dari portfolio]
+• Time Horizon: [jangka waktu]
 
-Gunakan:
-- Emoji untuk visual hierarchy
-- Bold untuk emphasis (**text**)
-- Bullet points untuk clarity
-- Data kuantitatif dan reasoning yang kuat
-- Bahasa Indonesia profesional tapi engaging
+⚖️ **DISCLAIMER**
+Analisis ini hanya referensi edukasi, bukan saran investasi. DYOR.
 
-Total 400-600 kata, padat informasi dan actionable.
-"""
+Gunakan emoji, **bold**, dan bullet points. Total 500-700 kata."""
         
-        # Call Gemini AI
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model=GEMINI_MODEL,
+            contents=prompt,
+            config=genai.types.GenerateContentConfig(
+                system_instruction=system_instruction,
+                temperature=0.6,
+                max_output_tokens=2048,
+            )
+        )
         
         return jsonify({
             'success': True,
