@@ -7,10 +7,16 @@ import warnings
 import json
 import os
 import requests
+import google.generativeai as genai
 warnings.filterwarnings('ignore')
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your-secret-key-here-change-in-production')
+
+# Configure Gemini AI
+GEMINI_API_KEY = "AIzaSyDOymWnnOqy4tE5GgIseYU1kNu3NVtfbCE"
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel('gemini-1.5-pro')
 
 # In-memory storage for serverless (Vercel doesn't have persistent filesystem)
 # For production, use Redis, PostgreSQL, or Vercel KV
@@ -695,6 +701,72 @@ def api_analyze_simple():
     result = analyze_stock_simple(ticker)
     return jsonify(result)
 
+# === IDX MONITOR API ===
+@app.route('/api/idx/monitor', methods=['POST'])
+def api_idx_monitor():
+    """Get real-time data for IDX stocks"""
+    data = request.get_json()
+    tickers = data.get('tickers', [])
+    
+    results = []
+    for ticker in tickers:
+        try:
+            # Get real-time data using yfinance with retry
+            for attempt in range(3):
+                try:
+                    # Download data for single ticker only
+                    hist = yf.download(ticker, period='5d', interval='1d', progress=False, show_errors=False)
+                    
+                    if not hist.empty and len(hist) >= 2:
+                        # Handle potential multi-level columns
+                        if isinstance(hist.columns, pd.MultiIndex):
+                            hist.columns = hist.columns.get_level_values(0)
+                        
+                        # Get current price (last close)
+                        current_price = float(hist['Close'].iloc[-1])
+                        prev_price = float(hist['Close'].iloc[-2])
+                        
+                        # Calculate change
+                        change = current_price - prev_price
+                        change_percent = (change / prev_price) * 100
+                        
+                        # Get volume
+                        volume = float(hist['Volume'].iloc[-1])
+                        
+                        results.append({
+                            'ticker': ticker,
+                            'price': round(current_price, 2),
+                            'change': round(change, 2),
+                            'change_percent': round(change_percent, 2),
+                            'volume': int(volume),
+                            'high': round(float(hist['High'].iloc[-1]), 2),
+                            'low': round(float(hist['Low'].iloc[-1]), 2),
+                            'error': False
+                        })
+                        break
+                    else:
+                        if attempt < 2:
+                            continue
+                        results.append({
+                            'ticker': ticker,
+                            'error': True,
+                            'message': 'Data tidak tersedia'
+                        })
+                except Exception as e:
+                    if attempt < 2:
+                        continue
+                    raise e
+                    
+        except Exception as e:
+            print(f"Error fetching {ticker}: {str(e)}")
+            results.append({
+                'ticker': ticker,
+                'error': True,
+                'message': 'Error fetching data'
+            })
+    
+    return jsonify({'data': results})
+
 # === WATCHLIST API ===
 @app.route('/api/watchlist', methods=['GET'])
 def get_watchlist():
@@ -1019,6 +1091,161 @@ _StockPro AI - Notifikasi Real-time_"""
     except Exception as e:
         print(f"Error checking alerts: {str(e)}")
         return jsonify({'error': str(e)}), 500
+
+# === AI CHATBOT & ANALYSIS API ===
+@app.route('/api/ai/chat', methods=['POST'])
+def ai_chat():
+    """AI Chatbot powered by Gemini 1.5 Pro"""
+    try:
+        data = request.get_json()
+        message = data.get('message', '')
+        ticker = data.get('ticker', '')
+        stock_data = data.get('stockData', {})
+        
+        # Build context-aware prompt
+        if ticker and stock_data:
+            context = f"""
+Kamu adalah StockPro AI, asisten analisis saham profesional yang ahli dalam pasar saham Indonesia dan global.
+
+DATA SAHAM SAAT INI:
+Ticker: {ticker}
+Harga: Rp {stock_data.get('price', 'N/A')}
+Perubahan: {stock_data.get('change_percent', 0)}%
+Volume: {stock_data.get('volume', 'N/A')}
+
+INDIKATOR TEKNIKAL:
+{json.dumps(stock_data.get('indicators', {}), indent=2)}
+
+User bertanya: {message}
+
+Berikan jawaban yang:
+1. Professional tapi mudah dipahami
+2. Berbasis data dan analisis teknikal
+3. Termasuk insight mendalam tentang kondisi pasar
+4. Berikan rekomendasi aksi jika relevan (BUY/HOLD/SELL)
+5. Gunakan emoji untuk visual appeal
+6. Bahasa Indonesia yang natural
+
+Jawab dalam 3-5 paragraf yang padat informasi.
+"""
+        else:
+            context = f"""
+Kamu adalah StockPro AI, asisten analisis saham profesional yang ahli dalam pasar saham Indonesia dan global.
+
+User bertanya: {message}
+
+Berikan jawaban yang:
+1. Professional tapi mudah dipahami
+2. Educational dan informatif
+3. Gunakan contoh konkret
+4. Gunakan emoji untuk visual appeal
+5. Bahasa Indonesia yang natural
+
+Jawab dalam 2-4 paragraf yang informatif.
+"""
+        
+        # Call Gemini AI
+        response = model.generate_content(context)
+        
+        return jsonify({
+            'success': True,
+            'response': response.text,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"AI Chat error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Maaf, terjadi kesalahan pada AI. Silakan coba lagi.',
+            'details': str(e)
+        }), 500
+
+@app.route('/api/ai/analysis', methods=['POST'])
+def ai_deep_analysis():
+    """AI Deep Analysis powered by Gemini 1.5 Pro"""
+    try:
+        data = request.get_json()
+        ticker = data.get('ticker', '')
+        stock_data = data.get('stockData', {})
+        
+        if not ticker or not stock_data:
+            return jsonify({'success': False, 'error': 'Data tidak lengkap'}), 400
+        
+        # Build comprehensive analysis prompt
+        prompt = f"""
+Sebagai AI analyst profesional, buatkan analisis mendalam untuk saham {ticker}.
+
+DATA FUNDAMENTAL:
+- Ticker: {ticker}
+- Harga Sekarang: Rp {stock_data.get('price', 0):,.2f}
+- Perubahan 24h: {stock_data.get('change_percent', 0):.2f}%
+- Volume: {stock_data.get('volume', 0):,}
+- Market Cap: {stock_data.get('market_cap', 'N/A')}
+- High 52W: {stock_data.get('high_52w', 'N/A')}
+- Low 52W: {stock_data.get('low_52w', 'N/A')}
+
+DATA TEKNIKAL:
+RSI: {stock_data.get('rsi', 'N/A')}
+MACD: {stock_data.get('macd', 'N/A')}
+Moving Average 20: {stock_data.get('ma20', 'N/A')}
+Moving Average 50: {stock_data.get('ma50', 'N/A')}
+Bollinger Bands: {stock_data.get('bollinger', 'N/A')}
+
+SENTIMENT PASAR:
+Trend: {stock_data.get('trend', 'N/A')}
+Momentum: {stock_data.get('momentum', 'N/A')}
+Volatility: {stock_data.get('volatility', 'N/A')}
+
+Buatkan analisis komprehensif dengan struktur:
+
+📊 **RINGKASAN EKSEKUTIF**
+[2-3 kalimat overview kondisi saham]
+
+🔍 **ANALISIS TEKNIKAL**
+[Analisis mendalam indikator teknikal, support/resistance, pattern]
+
+📈 **TREND & MOMENTUM**
+[Analisis trend jangka pendek, menengah, panjang]
+
+⚠️ **RISK ASSESSMENT**
+[Identifikasi risiko utama dan mitigasi]
+
+💡 **REKOMENDASI**
+[Action: STRONG BUY / BUY / HOLD / SELL / STRONG SELL]
+[Target Price jangka pendek & menengah]
+[Stop Loss recommendation]
+
+🎯 **STRATEGI TRADING**
+[Entry point, exit strategy, position sizing]
+
+Gunakan:
+- Emoji untuk visual hierarchy
+- Bold untuk emphasis (**text**)
+- Bullet points untuk clarity
+- Data kuantitatif dan reasoning yang kuat
+- Bahasa Indonesia profesional tapi engaging
+
+Total 400-600 kata, padat informasi dan actionable.
+"""
+        
+        # Call Gemini AI
+        response = model.generate_content(prompt)
+        
+        return jsonify({
+            'success': True,
+            'analysis': response.text,
+            'ticker': ticker,
+            'timestamp': datetime.now().isoformat()
+        })
+        
+    except Exception as e:
+        print(f"AI Analysis error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'error': 'Maaf, terjadi kesalahan pada AI analysis. Silakan coba lagi.',
+            'details': str(e)
+        }), 500
 
 if __name__ == '__main__':
     print("🚀 Starting Simple Stock Analysis Web App...")

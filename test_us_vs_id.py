@@ -14,7 +14,7 @@ else:
     print(f"✅ Success!")
     print(f"   Ticker: {data.get('ticker')}")
     print(f"   Price: ${data.get('harga', {}).get('sekarang', 0):,.2f}")
-
+ 
 print("\n" + "="*60 + "\n")
 
 # Test with Indonesian stock
