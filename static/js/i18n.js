@@ -26,6 +26,20 @@ const translations = {
         'watchlist.addButton': 'Tambah Saham',
         'watchlist.quickAdd': 'Tambah Saham Saat Ini',
         
+        // Stats
+        'stats.currentPrice': 'Harga Sekarang',
+        'stats.high30d': 'Tertinggi 30D',
+        'stats.low30d': 'Terendah 30D',
+        'stats.volume': 'Volume',
+        
+        // Chart
+        'chart.title': 'Grafik Harga Professional (60 Hari)',
+        'chart.price': 'Harga',
+        
+        // Analysis
+        'analysis.technicalTitle': 'Analisis Teknikal',
+        'analysis.aiTitle': 'Rekomendasi AI',
+        
         // Company Info
         'company.info': 'Informasi Perusahaan',
         'company.sector': 'Sektor',
@@ -192,6 +206,20 @@ const translations = {
         'watchlist.title': 'My Watchlist',
         'watchlist.addButton': 'Add Stock',
         'watchlist.quickAdd': 'Add Current Stock',
+        
+        // Stats
+        'stats.currentPrice': 'Current Price',
+        'stats.high30d': '30D High',
+        'stats.low30d': '30D Low',
+        'stats.volume': 'Volume',
+        
+        // Chart
+        'chart.title': 'Professional Price Chart (60 Days)',
+        'chart.price': 'Price',
+        
+        // Analysis
+        'analysis.technicalTitle': 'Technical Analysis',
+        'analysis.aiTitle': 'AI Recommendation',
         
         // Company Info
         'company.info': 'Company Information',
