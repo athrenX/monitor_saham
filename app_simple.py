@@ -344,9 +344,13 @@ def analyze_stock_simple(ticker):
             }
         
         # Force convert to Series to avoid DataFrame assignment issues
-        close_series = pd.Series(df['Close'].values, index=df.index)
-        high_series = pd.Series(df['High'].values, index=df.index)
-        low_series = pd.Series(df['Low'].values, index=df.index)
+        # Ensure we extract only the values, not DataFrame
+        close_series = pd.Series(df['Close'].values.flatten() if hasattr(df['Close'].values, 'flatten') else df['Close'].values, index=df.index)
+        high_series = pd.Series(df['High'].values.flatten() if hasattr(df['High'].values, 'flatten') else df['High'].values, index=df.index)
+        low_series = pd.Series(df['Low'].values.flatten() if hasattr(df['Low'].values, 'flatten') else df['Low'].values, index=df.index)
+        
+        print(f"[DEBUG] close_series shape: {close_series.shape}, type: {type(close_series)}")
+        print(f"[DEBUG] close_series first 3 values: {close_series.head(3).tolist()}")
         
         # Hitung indikator sederhana
         df['MA7'] = calculate_moving_average(close_series, 7)   # Rata-rata 1 minggu

@@ -26,6 +26,11 @@ const translations = {
         'watchlist.addButton': 'Tambah Saham',
         'watchlist.quickAdd': 'Tambah Saham Saat Ini',
         
+        // Tabs
+        'tabs.market': 'Ringkasan Pasar',
+        'tabs.analysis': 'Analisis Saham',
+        'tabs.watchlist': 'Pantauan Saham',
+        
         // Stats
         'stats.currentPrice': 'Harga Sekarang',
         'stats.high30d': 'Tertinggi 30D',
@@ -206,6 +211,11 @@ const translations = {
         'watchlist.title': 'My Watchlist',
         'watchlist.addButton': 'Add Stock',
         'watchlist.quickAdd': 'Add Current Stock',
+        
+        // Tabs
+        'tabs.market': 'Market Overview',
+        'tabs.analysis': 'Stock Analysis',
+        'tabs.watchlist': 'Watchlist',
         
         // Stats
         'stats.currentPrice': 'Current Price',
