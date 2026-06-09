@@ -12,6 +12,8 @@
 
 </p>
 
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Try_Now-success?style=for-the-badge)](https://monitor-saham-nine.vercel.app/)
+
 <p align="center">
 
 <a href="https://monitor-saham-nine.vercel.app/">
